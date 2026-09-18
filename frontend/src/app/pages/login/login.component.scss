@@ -1,0 +1,48 @@
+:host { display: block; min-height: 100vh; }
+.login-page { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(440px, .85fr); background: #f6f8fb; }
+.school-panel { position: relative; min-height: 100vh; overflow: hidden; display: flex; align-items: end; padding: clamp(2rem, 5vw, 5rem); color: white; }
+.school-photo, .photo-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+.school-photo { object-fit: cover; }
+.photo-overlay { background: linear-gradient(180deg, rgb(3 27 52 / 22%) 0%, rgb(3 25 48 / 93%) 84%), linear-gradient(90deg, rgb(0 32 65 / 20%), transparent); }
+.school-copy { position: relative; z-index: 1; max-width: 680px; }
+.eyebrow { display: inline-flex; padding: .38rem .75rem; border: 1px solid rgb(229 181 73 / 75%); border-radius: 999px; color: #f3c765; background: rgb(0 25 49 / 35%); font-weight: 800; font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; }
+h1 { margin: 1.25rem 0 .8rem; font-size: clamp(2.3rem, 4.5vw, 4.5rem); line-height: .98; letter-spacing: -.045em; max-width: 720px; }
+.school-copy p { max-width: 620px; margin: 0; color: #d8e4ef; font-size: 1.05rem; line-height: 1.65; }
+.values { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.5rem; }
+.values span { font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #e9bf60; }
+.values span + span::before { content: '•'; margin-right: .65rem; }
+.login-panel { display: grid; place-items: center; padding: 2rem; }
+.login-card { width: min(440px, 100%); }
+.logo { display: block; width: 132px; height: 132px; margin: 0 auto 1rem; object-fit: cover; border-radius: 50%; filter: drop-shadow(0 10px 20px rgb(8 40 76 / 12%)); }
+.heading { text-align: center; margin-bottom: 1.7rem; }
+.heading span { color: #b27a08; font-size: .78rem; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+.heading h2 { margin: .45rem 0 .35rem; color: var(--navy); font-size: 1.8rem; letter-spacing: -.03em; }
+.heading p { margin: 0; color: var(--muted); }
+form { display: grid; }
+label { margin: 0 0 .45rem; color: var(--text); font-size: .88rem; font-weight: 750; }
+input { width: 100%; height: 52px; padding: 0 .9rem; border: 1px solid #ccd6e1; border-radius: 10px; background: white; color: var(--text); font: inherit; outline: none; transition: .18s; }
+input:focus { border-color: #1c5c96; box-shadow: 0 0 0 4px rgb(28 92 150 / 10%); }
+label:not(:first-child) { margin-top: 1rem; }
+.password-field { position: relative; }
+.password-field input { padding-right: 5.3rem; }
+.password-field button { position: absolute; right: .75rem; top: 50%; transform: translateY(-50%); border: 0; background: none; color: #1c5c96; font-size: .78rem; font-weight: 800; cursor: pointer; }
+.submit-button { height: 52px; margin-top: 1.3rem; border: 0; border-radius: 10px; color: white; background: linear-gradient(90deg, #082f59, #0b477e); font: inherit; font-weight: 800; cursor: pointer; box-shadow: 0 12px 24px rgb(8 47 89 / 20%); }
+.submit-button:disabled { cursor: not-allowed; opacity: .58; }
+.error-message { margin: .8rem 0 0; padding: .7rem .8rem; border-radius: 8px; color: #9c1c1c; background: #fff0f0; font-size: .85rem; }
+.demo-access { display: grid; gap: .28rem; margin-top: 1.25rem; padding: .85rem 1rem; border: 1px solid #d8e2ec; border-radius: 10px; color: #50647a; background: #f9fbfd; font-size: .76rem; }
+.demo-access strong { color: var(--navy); font-size: .8rem; }
+.demo-access small { color: #78899a; }
+.privacy { margin: 1.2rem 0 0; color: #7a8999; font-size: .75rem; text-align: center; }
+@media (max-width: 960px) {
+  .login-page { grid-template-columns: 1fr; }
+  .school-panel { min-height: 360px; padding: 2rem; }
+  h1 { font-size: 2.5rem; }
+  .login-panel { padding: 2.5rem 1rem; }
+}
+@media (max-width: 520px) {
+  .school-panel { min-height: 300px; }
+  .school-copy p { font-size: .92rem; }
+  .values { display: none; }
+  .logo { width: 105px; height: 105px; }
+}
+

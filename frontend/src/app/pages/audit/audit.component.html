@@ -1,0 +1,10 @@
+<section class="page-heading"><div><span class="eyebrow">Segurança e rastreabilidade</span><h1>Registro de alterações</h1><p>Histórico das ações realizadas pelos usuários do sistema.</p></div></section>
+<section class="audit-card">
+  <div class="audit-notice"><span>i</span><p>Os registros de auditoria são somente para consulta e não podem ser alterados pelo sistema.</p></div>
+  @if (loading) { <div class="empty-state">Carregando registros…</div> }
+  @else if (logs.length) {
+    <div class="table-wrap"><table><thead><tr><th>Data e hora</th><th>Usuário</th><th>Ação</th><th>Entidade</th><th>Detalhes</th></tr></thead><tbody>
+      @for (log of logs; track log.id) { <tr><td>{{ formatDateTime(log.createdAt) }}</td><td><strong>{{ log.userName }}</strong><small>{{ roleLabel(log.userRole) }}</small></td><td><span class="action-badge">{{ actionLabel(log.action, log.entity) }}</span></td><td>{{ log.entity }} @if (log.entityId) { <small>#{{ log.entityId }}</small> }</td><td class="details">{{ log.details || '—' }}</td></tr> }
+    </tbody></table></div>
+  } @else { <div class="empty-state">Nenhuma atividade registrada.</div> }
+</section>

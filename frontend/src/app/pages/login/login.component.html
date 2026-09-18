@@ -1,0 +1,50 @@
+<main class="login-page">
+  <section class="school-panel" aria-label="E.E. Monsenhor Bicudo">
+    <img class="school-photo" src="images/foto-escola.jpg" alt="Prédio da E.E. Monsenhor Bicudo">
+    <div class="photo-overlay"></div>
+    <div class="school-copy">
+      <span class="eyebrow">Desde 1963</span>
+      <h1>Cuidar da convivência também é educar.</h1>
+      <p>Registro responsável, acompanhamento transparente e proteção das informações da comunidade escolar.</p>
+      <div class="values"><span>Transparência</span><span>Organização</span><span>Cuidado</span></div>
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-card">
+      <img class="logo" src="images/logo-monsenhor-bicudo.png" alt="Logo da E.E. Monsenhor Bicudo">
+      <div class="heading">
+        <span>Ocorrência Online</span>
+        <h2>Bem-vindo ao sistema</h2>
+        <p>Entre com suas credenciais institucionais.</p>
+      </div>
+
+      <form (ngSubmit)="submit()" #loginForm="ngForm">
+        <label for="email">E-mail</label>
+        <input id="email" name="email" type="email" autocomplete="username" required [(ngModel)]="email" placeholder="nome@monsenhor.edu.br">
+
+        <label for="password">Senha</label>
+        <div class="password-field">
+          <input id="password" name="password" [type]="showPassword ? 'text' : 'password'" autocomplete="current-password" required minlength="8" [(ngModel)]="password" placeholder="Digite sua senha">
+          <button type="button" (click)="showPassword = !showPassword">{{ showPassword ? 'Ocultar' : 'Mostrar' }}</button>
+        </div>
+
+        @if (errorMessage) { <p class="error-message" role="alert">{{ errorMessage }}</p> }
+
+        <button class="submit-button" type="submit" [disabled]="loginForm.invalid || loading">
+          {{ loading ? 'Entrando…' : 'Entrar no sistema' }}
+        </button>
+      </form>
+
+      <div class="demo-access">
+        <strong>Acessos para demonstração</strong>
+        <span>Professor: professor@monsenhor.edu.br</span>
+        <span>Administrador: admin@monsenhor.edu.br</span>
+        <span>Aluno: aluno@monsenhor.edu.br</span>
+        <small>As senhas estão no arquivo README do projeto.</small>
+      </div>
+      <p class="privacy">Acesso restrito. As atividades realizadas no sistema são registradas.</p>
+    </div>
+  </section>
+</main>
+

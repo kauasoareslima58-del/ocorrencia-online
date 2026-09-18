@@ -1,0 +1,61 @@
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">Visão geral</span>
+    <h1>Olá, {{ auth.currentUser?.name }}.</h1>
+    <p>{{ auth.hasRole('ALUNO') ? 'Acompanhe as ocorrências registradas em seu nome.' : 'Acompanhe a situação das ocorrências da escola.' }}</p>
+  </div>
+  @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
+    <a class="button button-primary" routerLink="/nova-ocorrencia">＋ Registrar ocorrência</a>
+  }
+</section>
+
+@if (loading) {
+  <div class="state-card">Carregando indicadores…</div>
+} @else if (error) {
+  <div class="state-card error">{{ error }}</div>
+} @else if (stats; as data) {
+  <section class="metric-grid" aria-label="Indicadores de ocorrências">
+    <article class="metric total"><span>Total</span><strong>{{ data.totals.all }}</strong><small>ocorrências registradas</small></article>
+    <article class="metric pending"><span>Pendentes</span><strong>{{ data.totals.pending }}</strong><small>aguardando análise</small></article>
+    <article class="metric analysis"><span>Em análise</span><strong>{{ data.totals.analysis }}</strong><small>em avaliação</small></article>
+    <article class="metric monitoring"><span>Acompanhamento</span><strong>{{ data.totals.monitoring }}</strong><small>com providências</small></article>
+    <article class="metric closed"><span>Encerradas</span><strong>{{ data.totals.closed }}</strong><small>casos finalizados</small></article>
+  </section>
+
+  <section class="dashboard-grid">
+    <article class="panel recent-panel">
+      <div class="panel-heading"><div><h2>Ocorrências recentes</h2><p>Últimos registros disponíveis para seu perfil.</p></div><a routerLink="/ocorrencias">Ver todas</a></div>
+      @if (data.recent.length) {
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Protocolo</th><th>Aluno(s)</th><th>Categoria</th><th>Data</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              @for (item of data.recent; track item.id) {
+                <tr>
+                  <td><strong>{{ item.protocol }}</strong><small>{{ priorityLabel(item.priority) }}</small></td>
+                  <td>{{ item.students[0]?.name || '—' }} @if (item.students.length > 1) { <small>+{{ item.students.length - 1 }} aluno(s)</small> }</td>
+                  <td>{{ item.categoryName }}</td>
+                  <td>{{ formatDate(item.occurrenceDate) }}</td>
+                  <td><span class="status-pill {{ statusClass(item.status) }}">{{ statusLabel(item.status) }}</span></td>
+                  <td><a class="row-link" [routerLink]="['/ocorrencias', item.id]" aria-label="Abrir ocorrência">→</a></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else { <div class="empty-state">Nenhuma ocorrência disponível.</div> }
+    </article>
+
+    <article class="panel category-panel">
+      <div class="panel-heading"><div><h2>Por categoria</h2><p>Distribuição dos registros.</p></div></div>
+      <div class="category-list">
+        @for (category of data.byCategory; track category.name) {
+          <div class="category-row">
+            <span>{{ category.name }}</span><strong>{{ category.total }}</strong>
+            <div class="bar"><span [style.width.%]="data.totals.all ? (category.total / data.totals.all) * 100 : 0"></span></div>
+          </div>
+        } @empty { <div class="empty-state">Sem dados por categoria.</div> }
+      </div>
+    </article>
+  </section>
+}

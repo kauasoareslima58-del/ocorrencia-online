@@ -1,0 +1,57 @@
+<div class="app-shell">
+  <aside class="sidebar" [class.open]="menuOpen" aria-label="Menu principal">
+    <a class="brand" routerLink="/painel" (click)="closeMenu()">
+      <img src="images/logo-monsenhor-bicudo.png" alt="Logo da E.E. Monsenhor Bicudo">
+      <span><strong>Ocorrência Online</strong><small>E.E. Monsenhor Bicudo</small></span>
+    </a>
+
+    <nav>
+      <a routerLink="/painel" routerLinkActive="active" (click)="closeMenu()">
+        <span class="nav-icon">▦</span><span>Painel</span>
+      </a>
+      @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
+        <a routerLink="/nova-ocorrencia" routerLinkActive="active" (click)="closeMenu()">
+          <span class="nav-icon">＋</span><span>Nova ocorrência</span>
+        </a>
+      }
+      <a routerLink="/ocorrencias" routerLinkActive="active" (click)="closeMenu()">
+        <span class="nav-icon">☷</span><span>Ocorrências</span>
+      </a>
+      @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
+        <a routerLink="/alunos" routerLinkActive="active" (click)="closeMenu()">
+          <span class="nav-icon">♙</span><span>Alunos e turmas</span>
+        </a>
+      }
+      @if (auth.hasRole('ADMINISTRADOR')) {
+        <a routerLink="/professores" routerLinkActive="active" (click)="closeMenu()">
+          <span class="nav-icon">♟</span><span>Professores</span>
+        </a>
+        <a routerLink="/auditoria" routerLinkActive="active" (click)="closeMenu()">
+          <span class="nav-icon">↻</span><span>Auditoria</span>
+        </a>
+      }
+    </nav>
+
+    <div class="school-card">
+      <img src="images/foto-escola.jpg" alt="Prédio da E.E. Monsenhor Bicudo">
+      <p>Educação, respeito e compromisso com o futuro.</p>
+    </div>
+  </aside>
+
+  @if (menuOpen) { <button class="backdrop" aria-label="Fechar menu" (click)="closeMenu()"></button> }
+
+  <section class="workspace">
+    <header class="topbar">
+      <button class="menu-button" aria-label="Abrir menu" (click)="menuOpen = !menuOpen">☰</button>
+      <div class="topbar-title"><strong>E.E. Monsenhor Bicudo</strong><span>Sistema de ocorrências escolares</span></div>
+      @if (auth.currentUser; as user) {
+        <div class="user-menu">
+          <span class="avatar">{{ user.name.charAt(0) }}</span>
+          <span class="user-copy"><strong>{{ user.name }}</strong><small>{{ roleLabel(user.role) }}</small></span>
+          <button class="logout-button" (click)="logout()" title="Sair">Sair</button>
+        </div>
+      }
+    </header>
+    <main class="page-container"><router-outlet /></main>
+  </section>
+</div>

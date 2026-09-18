@@ -1,0 +1,24 @@
+{
+  "name": "ocorrencia-online-api",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "db:setup": "node src/scripts/setup-db.js && node src/scripts/seed.js",
+    "db:seed": "node src/scripts/seed.js",
+    "backup": "node src/scripts/backup.js",
+    "check": "node --check src/app.js && node --check src/config/classes.js && node --check src/routes/metadata.routes.js && node --check src/routes/occurrences.routes.js && node --check src/routes/students.routes.js && node --check src/routes/teachers.routes.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.15.0"
+  }
+}

@@ -1,0 +1,60 @@
+<section class="page-heading">
+  <div><span class="eyebrow">Do 6º Ano à 3ª Série</span><h1>Alunos e turmas</h1><p>Cadastre alunos e consulte os registros separados por turma.</p></div>
+  @if (auth.hasRole('ADMINISTRADOR')) {
+    <button class="button button-primary" type="button" (click)="showForm = !showForm">{{ showForm ? 'Fechar cadastro' : '＋ Cadastrar aluno' }}</button>
+  }
+</section>
+
+@if (showForm && auth.hasRole('ADMINISTRADOR')) {
+  <section class="register-card">
+    <div class="register-heading"><div><h2>Novo aluno</h2><p>Informe a série e a turma em que o aluno está matriculado.</p></div></div>
+    <form (ngSubmit)="submitStudent()" #studentRegistrationForm="ngForm">
+      <div class="field field-name"><label for="studentName">Nome completo</label><input id="studentName" name="studentName" required minlength="3" maxlength="120" [(ngModel)]="studentForm.name" placeholder="Nome do aluno"></div>
+      <div class="field"><label for="registration">Matrícula</label><input id="registration" name="registration" required minlength="3" maxlength="30" [(ngModel)]="studentForm.registration" placeholder="Ex.: 20260025"></div>
+      <div class="field"><label for="gradeLevel">Série</label><select id="gradeLevel" name="gradeLevel" required [(ngModel)]="studentForm.gradeLevel">@for (grade of gradeLevels; track grade) { <option [value]="grade">{{ grade }}</option> }</select></div>
+      <div class="field field-section"><label for="section">Turma</label><select id="section" name="section" required [(ngModel)]="studentForm.section">@for (section of sections; track section) { <option [value]="section">{{ section }}</option> }</select></div>
+      <div class="field"><label for="guardianName">Responsável</label><input id="guardianName" name="guardianName" maxlength="120" [(ngModel)]="studentForm.guardianName" placeholder="Nome do responsável"></div>
+      <div class="field"><label for="guardianPhone">Telefone</label><input id="guardianPhone" name="guardianPhone" maxlength="30" [(ngModel)]="studentForm.guardianPhone" placeholder="(14) 99999-9999"></div>
+      <div class="form-actions"><button class="button button-secondary" type="button" (click)="showForm = false">Cancelar</button><button class="button button-primary" type="submit" [disabled]="studentRegistrationForm.invalid || saving">{{ saving ? 'Cadastrando…' : 'Cadastrar aluno' }}</button></div>
+    </form>
+    @if (formError) { <p class="form-message error" role="alert">{{ formError }}</p> }
+  </section>
+}
+
+@if (success) { <div class="success-message" role="status">{{ success }}</div> }
+
+<section class="filter-card">
+  <div class="field search-field"><label for="studentSearch">Pesquisar aluno</label><input id="studentSearch" [(ngModel)]="search" (keyup.enter)="loadStudents()" placeholder="Nome ou matrícula"></div>
+  <div class="field"><label for="classFilter">Filtrar por turma</label><select id="classFilter" [(ngModel)]="selectedClass" (change)="loadStudents()"><option value="">Todas as turmas</option>@for (className of classes; track className) { <option [value]="className">{{ classLabel(className) }}</option> }</select></div>
+  <button class="button button-primary" type="button" (click)="loadStudents()">Pesquisar</button>
+</section>
+
+<div class="students-layout">
+  <section class="content-card students-panel">
+    <div class="list-heading"><strong>{{ selectedClass ? classLabel(selectedClass) : 'Todos os alunos' }}</strong><span>{{ students.length }} aluno(s)</span></div>
+    <div class="students-list">
+      @if (loading) { <div class="empty-state">Carregando alunos…</div> }
+      @for (student of students; track student.id) {
+        <button class="student-row" [class.active]="selectedStudent?.id === student.id" (click)="openHistory(student)">
+          <span class="avatar">{{ student.name.charAt(0) }}</span><span><strong>{{ student.name }}</strong><small>{{ student.registration }} · {{ student.className }}</small></span><b>{{ student.occurrenceCount || 0 }}</b>
+        </button>
+      } @empty { @if (!loading) { <div class="empty-state">Nenhum aluno encontrado nessa turma.</div> } }
+    </div>
+  </section>
+
+  <section class="content-card history-panel">
+    @if (!selectedStudent) {
+      <div class="history-placeholder"><span>♙</span><strong>Selecione um aluno</strong><p>O histórico de ocorrências aparecerá aqui.</p></div>
+    } @else {
+      <div class="student-header"><span class="avatar large">{{ selectedStudent.name.charAt(0) }}</span><div><h2>{{ selectedStudent.name }}</h2><p>{{ selectedStudent.registration }} · {{ selectedStudent.className }}</p></div><strong>{{ history.length }} registro(s)</strong></div>
+      @if (historyLoading) { <div class="empty-state">Carregando histórico…</div> }
+      @else if (history.length) {
+        <div class="history-list">
+          @for (item of history; track item.id) {
+            <a [routerLink]="['/ocorrencias', item.id]" class="history-row"><span class="date-box"><strong>{{ item.occurrenceDate.slice(8, 10) }}</strong><small>{{ item.occurrenceDate.slice(5, 7) }}/{{ item.occurrenceDate.slice(0, 4) }}</small></span><span><strong>{{ item.categoryName }}</strong><small>{{ item.protocol }} · {{ item.locationName }}</small><p>{{ item.description }}</p></span><span class="status-pill status-{{ item.status.toLowerCase() }}">{{ statusLabel(item.status) }}</span></a>
+          }
+        </div>
+      } @else { <div class="empty-state">Este aluno não possui ocorrências registradas.</div> }
+    }
+  </section>
+</div>

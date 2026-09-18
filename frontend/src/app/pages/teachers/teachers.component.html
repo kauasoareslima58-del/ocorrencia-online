@@ -1,0 +1,39 @@
+<section class="page-heading">
+  <div><span class="eyebrow">Acessos individuais</span><h1>Professores</h1><p>Crie um login para cada professor e acompanhe quem registrou cada ocorrência.</p></div>
+  <button class="button button-primary" type="button" (click)="showForm = !showForm">{{ showForm ? 'Fechar cadastro' : '＋ Novo professor' }}</button>
+</section>
+
+@if (showForm) {
+  <section class="teacher-form-card">
+    <div class="form-heading"><h2>Criar login de professor</h2><p>O professor utilizará o e-mail e a senha provisória para entrar no sistema.</p></div>
+    <form (ngSubmit)="createTeacher()" #teacherRegistrationForm="ngForm">
+      <div class="field"><label for="teacherName">Nome completo</label><input id="teacherName" name="teacherName" required minlength="3" maxlength="120" [(ngModel)]="teacherForm.name" placeholder="Nome do professor"></div>
+      <div class="field"><label for="teacherEmail">E-mail de acesso</label><input id="teacherEmail" name="teacherEmail" type="email" required maxlength="180" [(ngModel)]="teacherForm.email" placeholder="professor@monsenhor.edu.br"></div>
+      <div class="field"><label for="teacherPassword">Senha provisória</label><div class="password-field"><input id="teacherPassword" name="teacherPassword" [type]="showPassword ? 'text' : 'password'" required minlength="8" maxlength="72" [(ngModel)]="teacherForm.password" placeholder="Ex.: Escola@2026"><button type="button" (click)="showPassword = !showPassword">{{ showPassword ? 'Ocultar' : 'Mostrar' }}</button></div><small>Use maiúscula, minúscula, número e símbolo.</small></div>
+      <div class="form-actions"><button class="button button-secondary" type="button" (click)="showForm = false">Cancelar</button><button class="button button-primary" type="submit" [disabled]="teacherRegistrationForm.invalid || saving">{{ saving ? 'Criando…' : 'Criar login' }}</button></div>
+    </form>
+  </section>
+}
+
+@if (error) { <div class="message error" role="alert">{{ error }}</div> }
+@if (success) { <div class="message success" role="status">{{ success }}</div> }
+
+<section class="teachers-card">
+  <div class="card-heading"><div><h2>Contas cadastradas</h2><p>{{ teachers.length }} professor(es)</p></div><span class="security-note">Cada ocorrência guarda o professor responsável</span></div>
+  @if (loading) { <div class="empty-state">Carregando professores…</div> }
+  @else if (teachers.length) {
+    <div class="table-wrap"><table><thead><tr><th>Professor</th><th>E-mail de acesso</th><th>Ocorrências registradas</th><th>Cadastro</th><th>Status</th><th>Ação</th></tr></thead><tbody>
+      @for (teacher of teachers; track teacher.id) {
+        <tr>
+          <td><strong>{{ teacher.name }}</strong><small>Professor</small></td>
+          <td>{{ teacher.email }}</td>
+          <td><strong>{{ teacher.occurrenceCount }}</strong></td>
+          <td>{{ formatDate(teacher.createdAt) }}</td>
+          <td><span class="access-status" [class.inactive]="!teacher.active">{{ teacher.active ? 'Ativo' : 'Desativado' }}</span></td>
+          <td><button class="status-button" [class.activate]="!teacher.active" type="button" (click)="toggleStatus(teacher)">{{ teacher.active ? 'Desativar' : 'Ativar' }}</button></td>
+        </tr>
+      }
+    </tbody></table></div>
+  } @else { <div class="empty-state">Nenhum professor cadastrado.</div> }
+</section>
+

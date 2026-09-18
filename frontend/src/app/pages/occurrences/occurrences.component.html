@@ -1,0 +1,43 @@
+<section class="page-heading">
+  <div><span class="eyebrow">Consulta</span><h1>{{ auth.hasRole('ALUNO') ? 'Minhas ocorrências' : 'Ocorrências' }}</h1><p>Pesquise e acompanhe os registros autorizados para o seu perfil.</p></div>
+  @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) { <a class="button button-primary" routerLink="/nova-ocorrencia">＋ Nova ocorrência</a> }
+</section>
+
+<section class="filter-card">
+  <form (ngSubmit)="load()">
+    <div class="field field-search"><label for="search">Aluno, protocolo ou descrição</label><input id="search" name="search" [(ngModel)]="filters.search" placeholder="Digite para pesquisar"></div>
+    <div class="field"><label for="status">Status</label><select id="status" name="status" [(ngModel)]="filters.status"><option value="">Todos</option><option value="PENDENTE">Pendente</option><option value="EM_ANALISE">Em análise</option><option value="EM_ACOMPANHAMENTO">Em acompanhamento</option><option value="ENCERRADA">Encerrada</option></select></div>
+    <div class="field"><label for="category">Categoria</label><input id="category" name="category" [(ngModel)]="filters.category" placeholder="Ex.: Comportamento"></div>
+    <div class="field"><label for="className">Turma</label><select id="className" name="className" [(ngModel)]="filters.className"><option value="">Todas as turmas</option>@for (className of classes; track className) { <option [value]="className">{{ classLabel(className) }}</option> }</select></div>
+    <div class="field"><label for="startDate">Data inicial</label><input id="startDate" name="startDate" type="date" [(ngModel)]="filters.startDate"></div>
+    <div class="field"><label for="endDate">Data final</label><input id="endDate" name="endDate" type="date" [(ngModel)]="filters.endDate"></div>
+    @if (auth.hasRole('ADMINISTRADOR')) { <div class="field"><label for="professor">Professor</label><input id="professor" name="professor" [(ngModel)]="filters.professor" placeholder="Nome do responsável"></div> }
+    <div class="filter-actions"><button class="button button-primary" type="submit">Pesquisar</button><button class="button button-secondary" type="button" (click)="clearFilters()">Limpar</button></div>
+  </form>
+</section>
+
+<section class="content-card">
+  <div class="card-heading"><div><h2>Registros encontrados</h2><p>{{ occurrences.length }} ocorrência(s)</p></div></div>
+  @if (loading) { <div class="empty-state">Carregando ocorrências…</div> }
+  @else if (error) { <div class="empty-state error">{{ error }}</div> }
+  @else if (occurrences.length) {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Protocolo</th><th>Aluno(s)</th><th>Categoria</th><th>Data e local</th><th>Responsável</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          @for (item of occurrences; track item.id) {
+            <tr>
+              <td><strong>{{ item.protocol }}</strong><small>Prioridade {{ priorityLabel(item.priority).toLowerCase() }}</small></td>
+              <td><strong>{{ item.students[0]?.name || '—' }}</strong><small>{{ item.students[0]?.className || '' }} @if (item.students.length > 1) { · +{{ item.students.length - 1 }} }</small></td>
+              <td>{{ item.categoryName }}</td>
+              <td>{{ formatDate(item.occurrenceDate) }} · {{ item.occurrenceTime.slice(0, 5) }}<small>{{ item.locationName }}</small></td>
+              <td>{{ item.professorName }}</td>
+              <td><span class="status-pill {{ statusClass(item.status) }}">{{ statusLabel(item.status) }}</span></td>
+              <td><a class="row-link" [routerLink]="['/ocorrencias', item.id]" aria-label="Ver detalhes">→</a></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else { <div class="empty-state"><strong>Nenhum registro encontrado.</strong><span>Altere os filtros e tente novamente.</span></div> }
+</section>

@@ -1,0 +1,45 @@
+<section class="page-heading">
+  <div><span class="eyebrow">Novo registro</span><h1>Registrar ocorrência</h1><p>Informe os dados com clareza e apenas o necessário para o acompanhamento.</p></div>
+  <a class="button button-secondary" routerLink="/ocorrencias">Cancelar</a>
+</section>
+
+<div class="responsible-notice"><span>{{ auth.currentUser?.name?.charAt(0) }}</span><p>Esta ocorrência será registrada por <strong>{{ auth.currentUser?.name }}</strong> e o nome ficará salvo no histórico.</p></div>
+
+@if (loading) { <div class="state-card">Carregando formulário…</div> }
+@else {
+  <form class="form-layout" (ngSubmit)="submit()" #occurrenceForm="ngForm">
+    <section class="form-card student-card">
+      <div class="section-heading"><span>1</span><div><h2>Alunos envolvidos</h2><p>Selecione um ou mais alunos.</p></div></div>
+      <div class="student-search">
+        <select name="classFilter" [(ngModel)]="classFilter" (change)="loadStudents()" aria-label="Filtrar alunos por turma"><option value="">Todas as turmas</option>@for (className of classes; track className) { <option [value]="className">{{ classLabel(className) }}</option> }</select>
+        <input name="studentSearch" [(ngModel)]="studentSearch" (keyup.enter)="loadStudents()" placeholder="Nome ou matrícula">
+        <button type="button" class="button button-secondary" (click)="loadStudents()">Pesquisar</button>
+      </div>
+      <div class="student-list">
+        @for (student of students; track student.id) {
+          <label class="student-option" [class.selected]="isSelected(student.id)">
+            <input type="checkbox" [checked]="isSelected(student.id)" (change)="toggleStudent(student.id, $any($event.target).checked)">
+            <span class="student-avatar">{{ student.name.charAt(0) }}</span>
+            <span><strong>{{ student.name }}</strong><small>{{ student.registration }} · {{ student.className }}</small></span>
+          </label>
+        } @empty { <div class="empty-state">Nenhum aluno encontrado.</div> }
+      </div>
+      <p class="selection-count">{{ selectedStudentIds.length }} aluno(s) selecionado(s)</p>
+    </section>
+
+    <section class="form-card details-card">
+      <div class="section-heading"><span>2</span><div><h2>Dados da situação</h2><p>Quando, onde e como ocorreu.</p></div></div>
+      <div class="fields-grid">
+        <div class="field"><label for="date">Data</label><input id="date" name="date" type="date" required [(ngModel)]="formModel.occurrenceDate"></div>
+        <div class="field"><label for="time">Horário</label><input id="time" name="time" type="time" required [(ngModel)]="formModel.occurrenceTime"></div>
+        <div class="field"><label for="category">Categoria</label><select id="category" name="category" required [(ngModel)]="formModel.categoryId">@for (item of categories; track item.id) { <option [ngValue]="item.id">{{ item.name }}</option> }</select></div>
+        <div class="field"><label for="location">Local</label><select id="location" name="location" required [(ngModel)]="formModel.locationId">@for (item of locations; track item.id) { <option [ngValue]="item.id">{{ item.name }}</option> }</select></div>
+        <div class="field"><label for="priority">Prioridade</label><select id="priority" name="priority" required [(ngModel)]="formModel.priority"><option value="BAIXA">Baixa</option><option value="MEDIA">Média</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></div>
+        <div class="field field-full"><label for="description">Descrição objetiva</label><textarea id="description" name="description" required minlength="15" maxlength="2000" rows="7" [(ngModel)]="formModel.description" placeholder="Descreva o que aconteceu, sem julgamentos ou informações desnecessárias."></textarea><small>{{ formModel.description.length }}/2000 caracteres</small></div>
+      </div>
+
+      @if (error) { <p class="form-error" role="alert">{{ error }}</p> }
+      <div class="form-actions"><a class="button button-secondary" routerLink="/ocorrencias">Cancelar</a><button class="button button-primary" type="submit" [disabled]="occurrenceForm.invalid || saving">{{ saving ? 'Registrando…' : 'Registrar ocorrência' }}</button></div>
+    </section>
+  </form>
+}

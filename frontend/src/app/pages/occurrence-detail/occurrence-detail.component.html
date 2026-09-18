@@ -1,0 +1,85 @@
+<section class="page-heading compact">
+  <div><a class="back-link" routerLink="/ocorrencias">← Voltar para ocorrências</a><h1>Detalhes da ocorrência</h1></div>
+</section>
+
+@if (loading) { <div class="state-card">Carregando ocorrência…</div> }
+@else if (error && !occurrence) { <div class="state-card error">{{ error }}</div> }
+@else if (occurrence; as item) {
+  <section class="protocol-bar">
+    <div><span>Protocolo</span><strong>{{ item.protocol }}</strong></div>
+    <div class="protocol-meta"><span class="priority priority-{{ item.priority.toLowerCase() }}">Prioridade {{ priorityLabel(item.priority) }}</span><span class="status-pill {{ statusClass(item.status) }}">{{ statusLabel(item.status) }}</span></div>
+  </section>
+
+  <div class="detail-layout">
+    <div class="main-column">
+      <section class="detail-card">
+        <div class="card-title"><div><h2>Informações do registro</h2><span>Criado em {{ formatDateTime(item.createdAt) }}</span></div>@if (auth.hasRole('ADMINISTRADOR') && !editMode) { <button class="edit-button" type="button" (click)="editMode = true">Editar dados</button> }</div>
+        @if (editMode) {
+          <form class="edit-form" (ngSubmit)="saveDetails()" #editForm="ngForm">
+            <div><label for="editDate">Data</label><input id="editDate" name="editDate" type="date" required [(ngModel)]="editModel.occurrenceDate"></div>
+            <div><label for="editTime">Horário</label><input id="editTime" name="editTime" type="time" required [(ngModel)]="editModel.occurrenceTime"></div>
+            <div><label for="editCategory">Categoria</label><select id="editCategory" name="editCategory" required [(ngModel)]="editModel.categoryId">@for (category of categories; track category.id) { <option [ngValue]="category.id">{{ category.name }}</option> }</select></div>
+            <div><label for="editLocation">Local</label><select id="editLocation" name="editLocation" required [(ngModel)]="editModel.locationId">@for (location of locations; track location.id) { <option [ngValue]="location.id">{{ location.name }}</option> }</select></div>
+            <div><label for="editPriority">Prioridade</label><select id="editPriority" name="editPriority" required [(ngModel)]="editModel.priority"><option value="BAIXA">Baixa</option><option value="MEDIA">Média</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></div>
+            <div class="edit-description"><label for="editDescription">Descrição</label><textarea id="editDescription" name="editDescription" rows="5" required minlength="15" maxlength="2000" [(ngModel)]="editModel.description"></textarea></div>
+            <div class="edit-actions"><button class="button button-secondary" type="button" (click)="editMode = false">Cancelar</button><button class="button button-primary" type="submit" [disabled]="editForm.invalid || saving">{{ saving ? 'Salvando…' : 'Salvar dados' }}</button></div>
+          </form>
+        } @else {
+          <dl class="info-grid">
+            <div><dt>Data e horário</dt><dd>{{ formatDate(item.occurrenceDate) }} às {{ item.occurrenceTime.slice(0, 5) }}</dd></div>
+            <div><dt>Local</dt><dd>{{ item.locationName }}</dd></div>
+            <div><dt>Categoria</dt><dd>{{ item.categoryName }}</dd></div>
+            <div><dt>Registrado por</dt><dd>{{ item.professorName }}</dd></div>
+          </dl>
+          <div class="description"><span>Descrição</span><p>{{ item.description }}</p></div>
+        }
+      </section>
+
+      <section class="detail-card">
+        <div class="card-title"><h2>Linha do tempo</h2><span>Alterações e providências</span></div>
+        <div class="timeline">
+          @for (update of item.updates ?? []; track update.id) {
+            <article class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div class="timeline-content">
+                <div><strong>{{ update.authorName }}</strong><small>{{ roleLabel(update.authorRole) }} · {{ formatDateTime(update.createdAt) }}</small></div>
+                @if (update.previousStatus && update.newStatus && update.previousStatus !== update.newStatus) { <p class="status-change">Status alterado de <b>{{ statusLabel(update.previousStatus) }}</b> para <b>{{ statusLabel(update.newStatus) }}</b>.</p> }
+                @if (update.observation) { <p><span>Observação:</span> {{ update.observation }}</p> }
+                @if (update.actionTaken) { <p><span>Providência:</span> {{ update.actionTaken }}</p> }
+              </div>
+            </article>
+          } @empty { <div class="empty-state">Ainda não há atualizações.</div> }
+          <article class="timeline-item initial"><span class="timeline-dot"></span><div class="timeline-content"><div><strong>Ocorrência registrada</strong><small>{{ item.professorName }} · {{ formatDateTime(item.createdAt) }}</small></div></div></article>
+        </div>
+      </section>
+    </div>
+
+    <aside class="side-column">
+      <section class="detail-card students-card">
+        <div class="card-title"><h2>Alunos envolvidos</h2><span>{{ item.students.length }} aluno(s)</span></div>
+        <div class="involved-list">
+          @for (student of item.students; track student.id) {
+            <div class="involved-student"><span>{{ student.name.charAt(0) }}</span><div><strong>{{ student.name }}</strong><small>{{ student.registration }} · {{ student.className }}</small></div></div>
+          }
+        </div>
+      </section>
+
+      @if (auth.hasRole('ADMINISTRADOR')) {
+        <section class="detail-card update-card">
+          <div class="card-title"><h2>Atualizar ocorrência</h2><span>Ação administrativa</span></div>
+          <form (ngSubmit)="addUpdate()">
+            <label for="newStatus">Status</label>
+            <select id="newStatus" name="newStatus" [(ngModel)]="updateModel.newStatus"><option value="PENDENTE">Pendente</option><option value="EM_ANALISE">Em análise</option><option value="EM_ACOMPANHAMENTO">Em acompanhamento</option><option value="ENCERRADA">Encerrada</option></select>
+            <label for="observation">Observação</label>
+            <textarea id="observation" name="observation" rows="3" maxlength="1000" [(ngModel)]="updateModel.observation" placeholder="Informação complementar"></textarea>
+            <label for="actionTaken">Providência tomada</label>
+            <textarea id="actionTaken" name="actionTaken" rows="3" maxlength="1000" [(ngModel)]="updateModel.actionTaken" placeholder="Descreva a providência"></textarea>
+            @if (error) { <p class="form-message error">{{ error }}</p> }
+            @if (success) { <p class="form-message success">{{ success }}</p> }
+            <button class="button button-primary full" type="submit" [disabled]="saving">{{ saving ? 'Salvando…' : 'Salvar atualização' }}</button>
+          </form>
+        </section>
+      }
+    </aside>
+  </div>
+}
