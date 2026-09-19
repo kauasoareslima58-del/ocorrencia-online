@@ -1,15 +1,21 @@
 {
-  "name": "ocorrencia-online",
+  "name": "ocorrencia-online-monsenhor-bicudo",
   "version": "1.4.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "install:all": "npm ci --prefix backend && npm ci --prefix frontend",
+    "install:all": "npm ci && npm ci --prefix backend && npm ci --prefix frontend",
+    "dev": "concurrently -n API,ANGULAR -c yellow,cyan \"npm --prefix backend run dev\" \"npm --prefix frontend start\"",
+    "build": "npm --prefix frontend run build",
+    "start:api": "npm --prefix backend start",
     "env:create": "node scripts/create-env.js",
     "env:check": "npm run env:check --prefix backend",
     "db:setup": "npm run db:setup --prefix backend",
     "start:backend": "npm start --prefix backend",
     "start:frontend": "npm start --prefix frontend",
     "check": "npm run check --prefix backend && npm run build --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
