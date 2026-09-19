@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "env:check": "node src/scripts/check-env.js",
     "db:setup": "node src/scripts/setup-db.js && node src/scripts/seed.js",
+    "db:schema": "node src/scripts/setup-db.js",
     "db:seed": "node src/scripts/seed.js",
     "backup": "node src/scripts/backup.js",
-    "check": "node --check src/app.js && node --check src/config/classes.js && node --check src/routes/metadata.routes.js && node --check src/routes/occurrences.routes.js && node --check src/routes/students.routes.js && node --check src/routes/teachers.routes.js"
+    "check": "node --check src/app.js && node --check src/server.js && node --check src/config/env.js && node --check src/config/classes.js && node --check src/routes/metadata.routes.js && node --check src/routes/occurrences.routes.js && node --check src/routes/students.routes.js && node --check src/routes/teachers.routes.js && node --check src/scripts/check-env.js && node --check src/scripts/setup-db.js && node --check src/scripts/seed.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

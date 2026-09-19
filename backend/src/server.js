@@ -9,6 +9,19 @@ try {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 } catch (error) {
-  console.error('Não foi possível iniciar a API:', error.message);
+  console.error('Não foi possível iniciar a API:', databaseErrorMessage(error));
   process.exit(1);
+}
+
+function databaseErrorMessage(error) {
+  if (error?.code === 'ER_ACCESS_DENIED_ERROR') {
+    return 'usuário ou senha do MySQL incorretos. Confira DB_USER e DB_PASSWORD no arquivo .env.';
+  }
+  if (error?.code === 'ER_BAD_DB_ERROR') {
+    return `o banco "${env.db.database}" não existe. Execute npm run db:setup.`;
+  }
+  if (error?.code === 'ECONNREFUSED') {
+    return 'o MySQL não está ligado ou DB_HOST/DB_PORT estão incorretos.';
+  }
+  return error?.message ?? 'erro desconhecido.';
 }
