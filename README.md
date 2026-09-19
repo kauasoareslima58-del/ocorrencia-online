@@ -44,19 +44,25 @@ ocorrencia-online/
 
 ## 1. Preparar a API e o banco
 
-Abra o terminal dentro da pasta `backend`:
+Abra o terminal na pasta principal `ocorrencia-online` e instale todas as dependências:
 
 ```bash
-npm install
+npm run install:all
 ```
 
-No Windows, crie o arquivo de configuração assim:
+Crie o arquivo de configuração sem substituir uma configuração existente:
 
-```powershell
-copy .env.example .env
+```bash
+npm run env:create
 ```
 
-Abra o arquivo `.env` e informe a senha do seu MySQL em `DB_PASSWORD`. Mantenha `DB_NAME=ocorrencia_online`, pois esse é o nome usado no arquivo `database/schema.sql`.
+Abra `backend/.env`, informe a senha do MySQL em `DB_PASSWORD` e salve. O banco será criado com o nome definido em `DB_NAME`.
+
+Confira a configuração sem exibir a senha:
+
+```bash
+npm run env:check
+```
 
 Crie as tabelas e os dados de demonstração:
 
@@ -67,18 +73,17 @@ npm run db:setup
 Inicie a API:
 
 ```bash
-npm run dev
+npm run start:backend
 ```
 
 A API ficará em `http://localhost:3000`.
 
 ## 2. Iniciar o Angular
 
-Abra outro terminal dentro da pasta `frontend`:
+Abra outro terminal na pasta principal do projeto:
 
 ```bash
-npm install
-npm start
+npm run start:frontend
 ```
 
 O navegador abrirá `http://localhost:4200`.
@@ -124,9 +129,10 @@ O administrador também pode desativar o acesso de um professor sem apagar as oc
 Se você já iniciou a versão anterior, substitua a pasta pelo projeto atualizado e execute novamente na pasta `backend`:
 
 ```bash
-npm install
+npm run install:all
+npm run env:check
 npm run db:setup
-npm run dev
+npm run start:backend
 ```
 
 Os alunos e as ocorrências que você já cadastrou no MySQL não serão apagados.
@@ -169,8 +175,7 @@ Antes de publicar:
 ## Gerar a versão final do Angular
 
 ```bash
-cd frontend
-npm run build
+npm run check
 ```
 
-Os arquivos prontos para publicação serão gerados em `frontend/dist/ocorrencia-online/browser`.
+Esse comando valida o backend e compila o frontend. Os arquivos prontos para publicação serão gerados em `frontend/dist/ocorrencia-online/browser`.

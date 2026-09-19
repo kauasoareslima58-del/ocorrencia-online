@@ -1,6 +1,3 @@
-CREATE DATABASE IF NOT EXISTS ocorrencia_online CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE ocorrencia_online;
-
 CREATE TABLE IF NOT EXISTS users (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(120) NOT NULL,
@@ -108,4 +105,3 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   KEY idx_audit_user (user_id),
   CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB;
-
