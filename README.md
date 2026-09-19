@@ -107,7 +107,7 @@ As turmas A, B, C e D do `6º Ano` à `3ª Série` já aparecem nos filtros, mes
 
 ## Criar o login de cada professor
 
-Entre com o perfil **Administrador**, abra **Professores** e clique em **Novo professor**. Informe o nome completo, o e-mail e uma senha provisória.
+Entre com o perfil **Administrador**, clique em **Cadastrar professores** no menu ou em **Cadastrar professor** no painel. Depois clique em **Novo professor** e informe o nome completo, o e-mail usado como login e uma senha individual.
 
 Quando o professor entrar com essa conta:
 
