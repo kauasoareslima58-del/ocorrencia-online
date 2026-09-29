@@ -26,14 +26,14 @@
         <thead><tr><th>Protocolo</th><th>Aluno(s)</th><th>Categoria</th><th>Data e local</th><th>Responsável</th><th>Status</th><th></th></tr></thead>
         <tbody>
           @for (item of occurrences; track item.id) {
-            <tr>
+            <tr class="clickable-row" [routerLink]="['/ocorrencias', item.id]" [attr.aria-label]="'Abrir ocorrência ' + item.protocol">
               <td><strong>{{ item.protocol }}</strong><small>Prioridade {{ priorityLabel(item.priority).toLowerCase() }}</small></td>
               <td><strong>{{ item.students[0]?.name || '—' }}</strong><small>{{ item.students[0]?.className || '' }} @if (item.students.length > 1) { · +{{ item.students.length - 1 }} }</small></td>
               <td>{{ item.categoryName }}</td>
               <td>{{ formatDate(item.occurrenceDate) }} · {{ item.occurrenceTime.slice(0, 5) }}<small>{{ item.locationName }}</small></td>
               <td>{{ item.professorName }}</td>
               <td><span class="status-pill {{ statusClass(item.status) }}">{{ statusLabel(item.status) }}</span></td>
-              <td><a class="row-link" [routerLink]="['/ocorrencias', item.id]" aria-label="Ver detalhes">→</a></td>
+              <td><span class="row-link" aria-hidden="true">→</span></td>
             </tr>
           }
         </tbody>

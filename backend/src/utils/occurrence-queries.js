@@ -59,15 +59,19 @@ export async function getOccurrenceById(id, user, runner = pool) {
   const scope = roleScope(user);
   const [rows] = await runner.execute(`${occurrenceSelect} WHERE o.id = ? AND ${scope.sql}`, [id, ...scope.params]);
   if (!rows.length) return null;
-  const [withStudents] = await attachStudents(rows, runner, user);
-  const [updates] = await runner.execute(
-    `SELECT ou.id, ou.observation, ou.action_taken AS actionTaken,
-            ou.previous_status AS previousStatus, ou.new_status AS newStatus,
-            u.name AS authorName, u.role AS authorRole, ou.created_at AS createdAt
-     FROM occurrence_updates ou
-     INNER JOIN users u ON u.id = ou.created_by
-     WHERE ou.occurrence_id = ? ORDER BY ou.created_at DESC, ou.id DESC`,
-    [id]
-  );
+  const [studentRows, updateResult] = await Promise.all([
+    attachStudents(rows, runner, user),
+    runner.execute(
+      `SELECT ou.id, ou.observation, ou.action_taken AS actionTaken,
+              ou.previous_status AS previousStatus, ou.new_status AS newStatus,
+              u.name AS authorName, u.role AS authorRole, ou.created_at AS createdAt
+       FROM occurrence_updates ou
+       INNER JOIN users u ON u.id = ou.created_by
+       WHERE ou.occurrence_id = ? ORDER BY ou.created_at DESC, ou.id DESC`,
+      [id]
+    )
+  ]);
+  const [withStudents] = studentRows;
+  const [updates] = updateResult;
   return { ...withStudents, updates };
 }

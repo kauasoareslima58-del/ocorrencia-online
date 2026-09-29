@@ -1,6 +1,8 @@
 import { Component, inject, OnInit } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { timeout, TimeoutError } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { NamedItem, Occurrence, OccurrenceStatus } from '../../core/models';
@@ -39,7 +41,15 @@ export class OccurrenceDetailComponent implements OnInit {
 
   load(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.api.getOccurrence(id).subscribe({
+    this.loading = true;
+    this.error = '';
+    if (!Number.isInteger(id) || id <= 0) {
+      this.error = 'O endereço desta ocorrência é inválido.';
+      this.loading = false;
+      return;
+    }
+
+    this.api.getOccurrence(id).pipe(timeout(10000)).subscribe({
       next: (item) => {
         this.occurrence = item;
         this.updateModel.newStatus = item.status;
@@ -53,7 +63,18 @@ export class OccurrenceDetailComponent implements OnInit {
         }
         this.loading = false;
       },
-      error: () => { this.error = 'Ocorrência não encontrada ou acesso não autorizado.'; this.loading = false; }
+      error: (response: HttpErrorResponse | TimeoutError) => {
+        if (response instanceof TimeoutError) {
+          this.error = 'A API demorou para responder. Confira se o backend e o MySQL estão ligados e tente novamente.';
+        } else if (response.status === 403) {
+          this.error = 'Seu perfil não possui permissão para visualizar esta ocorrência.';
+        } else if (response.status === 404) {
+          this.error = 'A ocorrência não foi encontrada.';
+        } else {
+          this.error = response.error?.message || 'Não foi possível carregar os detalhes da ocorrência.';
+        }
+        this.loading = false;
+      }
     });
   }
 
