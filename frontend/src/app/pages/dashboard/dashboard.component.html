@@ -36,13 +36,13 @@
             <thead><tr><th>Protocolo</th><th>Aluno(s)</th><th>Categoria</th><th>Data</th><th>Status</th><th></th></tr></thead>
             <tbody>
               @for (item of data.recent; track item.id) {
-                <tr>
+                <tr class="clickable-row" [routerLink]="['/ocorrencias', item.id]" [attr.aria-label]="'Abrir ocorrência ' + item.protocol">
                   <td><strong>{{ item.protocol }}</strong><small>{{ priorityLabel(item.priority) }}</small></td>
                   <td>{{ item.students[0]?.name || '—' }} @if (item.students.length > 1) { <small>+{{ item.students.length - 1 }} aluno(s)</small> }</td>
                   <td>{{ item.categoryName }}</td>
                   <td>{{ formatDate(item.occurrenceDate) }}</td>
                   <td><span class="status-pill {{ statusClass(item.status) }}">{{ statusLabel(item.status) }}</span></td>
-                  <td><a class="row-link" [routerLink]="['/ocorrencias', item.id]" aria-label="Abrir ocorrência">→</a></td>
+                  <td><span class="row-link" aria-hidden="true">→</span></td>
                 </tr>
               }
             </tbody>

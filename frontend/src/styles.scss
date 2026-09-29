@@ -38,6 +38,8 @@ td strong, td small { display: block; }
 td strong { color: var(--text); }
 td small { margin-top: .2rem; color: #7b8b9a; font-size: .72rem; }
 tbody tr:hover { background: #fbfcfd; }
+.clickable-row { cursor: pointer; }
+.clickable-row:focus-visible { outline: 3px solid rgb(38 115 175 / 30%); outline-offset: -3px; }
 .row-link { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: #0f5a91; background: #edf5fb; font-size: 1.1rem; font-weight: 900; text-decoration: none; }
 .status-pill { display: inline-flex; align-items: center; justify-content: center; padding: .36rem .58rem; border-radius: 999px; white-space: nowrap; font-size: .7rem; font-weight: 850; }
 .status-pendente { color: #855c09; background: #fff0c8; }

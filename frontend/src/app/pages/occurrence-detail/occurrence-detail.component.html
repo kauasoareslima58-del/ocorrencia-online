@@ -3,7 +3,13 @@
 </section>
 
 @if (loading) { <div class="state-card">Carregando ocorrência…</div> }
-@else if (error && !occurrence) { <div class="state-card error">{{ error }}</div> }
+@else if (error && !occurrence) {
+  <div class="state-card error">
+    <strong>Não foi possível abrir a ocorrência.</strong>
+    <span>{{ error }}</span>
+    <button class="button button-secondary retry-button" type="button" (click)="load()">Tentar novamente</button>
+  </div>
+}
 @else if (occurrence; as item) {
   <section class="protocol-bar">
     <div><span>Protocolo</span><strong>{{ item.protocol }}</strong></div>
