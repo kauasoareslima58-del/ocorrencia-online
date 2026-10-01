@@ -2,32 +2,32 @@
   <aside class="sidebar" [class.open]="menuOpen" aria-label="Menu principal">
     <a class="brand" routerLink="/painel" (click)="closeMenu()">
       <img src="images/logo-monsenhor-bicudo.png" alt="Logo da E.E. Monsenhor Bicudo">
-      <span><strong>Ocorrência Online</strong><small>E.E. Monsenhor Bicudo</small></span>
+      <span class="brand-copy"><strong>Ocorrência Online</strong><small>E.E. Monsenhor Bicudo</small></span>
     </a>
 
     <nav>
-      <a routerLink="/painel" routerLinkActive="active" (click)="closeMenu()">
-        <span class="nav-icon">▦</span><span>Painel</span>
+      <a routerLink="/painel" routerLinkActive="active" (click)="closeMenu()" title="Painel">
+        <span class="nav-icon">▦</span><span class="nav-label">Painel</span>
       </a>
       @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
-        <a routerLink="/nova-ocorrencia" routerLinkActive="active" (click)="closeMenu()">
-          <span class="nav-icon">＋</span><span>Nova ocorrência</span>
+        <a routerLink="/nova-ocorrencia" routerLinkActive="active" (click)="closeMenu()" title="Nova ocorrência">
+          <span class="nav-icon">＋</span><span class="nav-label">Nova ocorrência</span>
         </a>
       }
-      <a routerLink="/ocorrencias" routerLinkActive="active" (click)="closeMenu()">
-        <span class="nav-icon">☷</span><span>Ocorrências</span>
+      <a routerLink="/ocorrencias" routerLinkActive="active" (click)="closeMenu()" title="Ocorrências">
+        <span class="nav-icon">☷</span><span class="nav-label">Ocorrências</span>
       </a>
       @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
-        <a routerLink="/alunos" routerLinkActive="active" (click)="closeMenu()">
-          <span class="nav-icon">♙</span><span>Alunos e turmas</span>
+        <a routerLink="/alunos" routerLinkActive="active" (click)="closeMenu()" title="Alunos e turmas">
+          <span class="nav-icon">♙</span><span class="nav-label">Alunos e turmas</span>
         </a>
       }
       @if (auth.hasRole('ADMINISTRADOR')) {
-        <a routerLink="/professores" routerLinkActive="active" (click)="closeMenu()">
-          <span class="nav-icon">♟</span><span>Cadastrar professores</span>
+        <a routerLink="/professores" routerLinkActive="active" (click)="closeMenu()" title="Cadastrar professores">
+          <span class="nav-icon">♟</span><span class="nav-label">Cadastrar professores</span>
         </a>
-        <a routerLink="/auditoria" routerLinkActive="active" (click)="closeMenu()">
-          <span class="nav-icon">↻</span><span>Auditoria</span>
+        <a routerLink="/auditoria" routerLinkActive="active" (click)="closeMenu()" title="Auditoria">
+          <span class="nav-icon">↻</span><span class="nav-label">Auditoria</span>
         </a>
       }
     </nav>
