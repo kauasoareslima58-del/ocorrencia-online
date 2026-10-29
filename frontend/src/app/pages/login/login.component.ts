@@ -14,8 +14,8 @@ import { AuthService } from '../../core/auth.service';
 export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  email = 'professor@monsenhor.edu.br';
-  password = 'Professor@123';
+  email = '';
+  password = '';
   showPassword = false;
   loading = false;
   errorMessage = '';
@@ -34,5 +34,17 @@ export class LoginComponent {
       }
     });
   }
-}
 
+  useDemo(role: 'admin' | 'professor' | 'aluno'): void {
+    if (role === 'admin') {
+      this.email = 'admin@monsenhor.edu.br';
+      this.password = 'Admin@123';
+    } else if (role === 'professor') {
+      this.email = 'professor@monsenhor.edu.br';
+      this.password = 'Professor@123';
+    } else {
+      this.email = 'aluno@monsenhor.edu.br';
+      this.password = 'Aluno@123';
+    }
+  }
+}

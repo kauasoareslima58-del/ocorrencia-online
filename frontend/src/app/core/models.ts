@@ -22,6 +22,7 @@ export interface Student {
   className: string;
   guardianName?: string;
   guardianPhone?: string;
+  active?: boolean | number;
   occurrenceCount?: number;
 }
 
@@ -59,6 +60,20 @@ export interface OccurrenceUpdate {
   authorName: string;
   authorRole: UserRole;
   createdAt: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface BatchImportResponse {
+  message: string;
+  successCount: number;
+  errors: string[];
 }
 
 export interface DashboardStats {

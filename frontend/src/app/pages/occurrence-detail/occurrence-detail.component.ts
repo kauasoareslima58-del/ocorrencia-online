@@ -37,6 +37,18 @@ export class OccurrenceDetailComponent implements OnInit {
   readonly formatDate = formatDate;
   readonly formatDateTime = formatDateTime;
 
+  get canAddUpdate(): boolean {
+    if (!this.occurrence) return false;
+    if (this.auth.hasRole('ADMINISTRADOR')) return true;
+    return this.auth.hasRole('PROFESSOR') && this.occurrence.createdBy === this.auth.currentUser?.id;
+  }
+
+  get canEditOccurrence(): boolean {
+    if (!this.occurrence) return false;
+    if (this.auth.hasRole('ADMINISTRADOR')) return true;
+    return this.auth.hasRole('PROFESSOR') && this.occurrence.createdBy === this.auth.currentUser?.id && this.occurrence.status === 'PENDENTE';
+  }
+
   ngOnInit(): void { this.load(); }
 
   load(): void {
@@ -58,7 +70,7 @@ export class OccurrenceDetailComponent implements OnInit {
           categoryId: item.categoryId ?? 0, locationId: item.locationId ?? 0,
           priority: item.priority, description: item.description
         };
-        if (this.auth.hasRole('ADMINISTRADOR') && !this.categories.length) {
+        if ((this.auth.hasRole('ADMINISTRADOR') || this.auth.hasRole('PROFESSOR')) && !this.categories.length) {
           this.api.getMetadata().subscribe(({ categories, locations }) => { this.categories = categories; this.locations = locations; });
         }
         this.loading = false;
@@ -90,7 +102,10 @@ export class OccurrenceDetailComponent implements OnInit {
         this.saving = false;
         this.success = 'Dados da ocorrência atualizados.';
       },
-      error: () => { this.error = 'Não foi possível atualizar os dados.'; this.saving = false; }
+      error: (err: HttpErrorResponse) => {
+        this.error = typeof err.error?.message === 'string' ? err.error.message : 'Não foi possível atualizar os dados.';
+        this.saving = false;
+      }
     });
   }
 
@@ -111,8 +126,15 @@ export class OccurrenceDetailComponent implements OnInit {
         this.saving = false;
         this.load();
       },
-      error: () => { this.error = 'Não foi possível salvar a atualização.'; this.saving = false; }
+      error: (err: HttpErrorResponse) => {
+        this.error = typeof err.error?.message === 'string' ? err.error.message : 'Não foi possível salvar a atualização.';
+        this.saving = false;
+      }
     });
+  }
+
+  printOfficialSheet(): void {
+    window.print();
   }
 
   statusClass(status: OccurrenceStatus): string { return `status-${status.toLowerCase()}`; }

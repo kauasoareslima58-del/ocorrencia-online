@@ -1,3 +1,55 @@
-.teacher-form-card, .teachers-card { border: 1px solid var(--border); border-radius: var(--radius); background: white; box-shadow: var(--shadow-sm); overflow: hidden; }.teacher-form-card { margin-bottom: 1rem; }.form-heading, .card-heading { padding: 1rem 1.2rem; border-bottom: 1px solid var(--border); }.form-heading h2, .card-heading h2 { margin: 0; color: var(--navy); font-size: 1.05rem; }.form-heading p, .card-heading p { margin: .25rem 0 0; color: var(--muted); font-size: .8rem; }.teacher-form-card form { display: grid; grid-template-columns: 1.1fr 1.1fr 1fr; gap: 1rem; align-items: start; padding: 1.2rem; }.field { display: grid; gap: .4rem; }.field label { color: #415469; font-size: .78rem; font-weight: 800; }.field small { color: var(--muted); font-size: .72rem; }.password-field { position: relative; }.password-field input { padding-right: 5.2rem; }.password-field button { position: absolute; right: .65rem; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: #175c8e; font-size: .72rem; font-weight: 850; cursor: pointer; }.form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: .6rem; }.message { margin-bottom: 1rem; padding: .8rem 1rem; border-radius: 9px; font-size: .84rem; font-weight: 700; }.message.error { color: #9e2020; border: 1px solid #f1cccc; background: #fff0f0; }.message.success { color: #176446; border: 1px solid #bee5d4; background: #ecf9f4; }.card-heading { min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }.security-note { color: #49657c; font-size: .76rem; }.access-status { display: inline-flex; padding: .34rem .6rem; border-radius: 999px; color: #176849; background: #e5f6ee; font-size: .72rem; font-weight: 850; }.access-status.inactive { color: #7c4e4e; background: #f3eaea; }.status-button { min-height: 34px; padding: .4rem .65rem; border: 1px solid #dfc8c8; border-radius: 7px; color: #8b3333; background: white; font-size: .74rem; font-weight: 800; cursor: pointer; }.status-button.activate { color: #176849; border-color: #bedfce; }
+.teacher-form-card, .teachers-card { border: 1px solid var(--border); border-radius: var(--radius); background: white; box-shadow: var(--shadow-sm); overflow: hidden; }
+.teacher-form-card { margin-bottom: 1rem; }
+.form-heading, .card-heading { padding: 1rem 1.2rem; border-bottom: 1px solid var(--border); }
+.form-heading h2, .card-heading h2 { margin: 0; color: var(--navy); font-size: 1.05rem; }
+.form-heading p, .card-heading p { margin: .25rem 0 0; color: var(--muted); font-size: .8rem; }
+.teacher-form-card form { display: grid; grid-template-columns: 1.1fr 1.1fr 1fr; gap: 1rem; align-items: start; padding: 1.2rem; }
+.field { display: grid; gap: .4rem; }
+.field label { color: #415469; font-size: .78rem; font-weight: 800; }
+.field small { color: var(--muted); font-size: .72rem; }
+.password-field { position: relative; }
+.password-field input { padding-right: 5.2rem; }
+.password-field button { position: absolute; right: .65rem; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: #175c8e; font-size: .72rem; font-weight: 850; cursor: pointer; }
+.form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: .6rem; }
+.message { margin-bottom: 1rem; padding: .8rem 1rem; border-radius: 9px; font-size: .84rem; font-weight: 700; }
+.message.error { color: #9e2020; border: 1px solid #f1cccc; background: #fff0f0; }
+.message.success { color: #176446; border: 1px solid #bee5d4; background: #ecf9f4; }
+.card-heading { min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.security-note { color: #49657c; font-size: .76rem; }
+.access-status { display: inline-flex; padding: .34rem .6rem; border-radius: 999px; color: #176849; background: #e5f6ee; font-size: .72rem; font-weight: 850; }
+.access-status.inactive { color: #7c4e4e; background: #f3eaea; }
+
+.actions-cell { display: flex; gap: .4rem; align-items: center; }
+.status-button { min-height: 34px; padding: .4rem .65rem; border: 1px solid #dfc8c8; border-radius: 7px; color: #8b3333; background: white; font-size: .74rem; font-weight: 800; cursor: pointer; transition: background .15s; }
+.status-button.activate { color: #176849; border-color: #bedfce; }
+.status-button:hover { background: #fdf2f2; }
+.status-button.activate:hover { background: #edf9f3; }
+
+.reset-button { min-height: 34px; padding: .4rem .65rem; border: 1px solid #b9d5ee; border-radius: 7px; color: #124d80; background: #f0f7fe; font-size: .74rem; font-weight: 800; cursor: pointer; transition: background .15s; }
+.reset-button:hover { background: #e0effd; }
+
+/* Modal styles */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(8, 25, 45, 0.55); backdrop-filter: blur(3px); z-index: 100; display: grid; place-items: center; padding: 1.5rem; }
+.modal-card { background: white; border-radius: 12px; width: min(460px, 100%); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); padding: 1.75rem; border: 1px solid #dce4ed; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.modal-header h3 { margin: 0; font-size: 1.2rem; color: var(--navy); }
+.close-btn { border: 0; background: none; font-size: 1.25rem; color: #78899a; cursor: pointer; padding: .2rem .4rem; }
+.reset-instruction { margin: 0 0 1rem; font-size: .84rem; color: #475569; }
+.modal-card form { display: grid; gap: .75rem; }
+.modal-card label { font-size: .82rem; font-weight: 700; color: #2c3e50; }
+.modal-card input { width: 100%; height: 44px; padding: 0 .75rem; border: 1px solid #ccd6e1; border-radius: 8px; font: inherit; }
+.modal-error { margin: .25rem 0; padding: .6rem; border-radius: 6px; background: #fff0f0; color: #b71c1c; font-size: .82rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1rem; }
+.btn-cancel { padding: .6rem 1rem; border: 1px solid #ccd6e1; background: white; border-radius: 8px; font-weight: 700; cursor: pointer; color: #4a5d6e; }
+.btn-save { padding: .6rem 1.25rem; border: 0; background: linear-gradient(90deg, #082f59, #0b477e); color: white; border-radius: 8px; font-weight: 700; cursor: pointer; }
+.btn-save:disabled { opacity: .6; cursor: not-allowed; }
+
 @media (max-width: 900px) { .teacher-form-card form { grid-template-columns: 1fr 1fr; }.field:last-of-type { grid-column: 1 / -1; } }
-@media (max-width: 600px) { .teacher-form-card form { grid-template-columns: 1fr; }.field:last-of-type, .form-actions { grid-column: auto; }.form-actions { flex-direction: column-reverse; }.form-actions .button { width: 100%; }.security-note { display: none; } }
+@media (max-width: 600px) {
+  .teacher-form-card form { grid-template-columns: 1fr; }
+  .field:last-of-type, .form-actions { grid-column: auto; }
+  .form-actions { flex-direction: column-reverse; }
+  .form-actions .button { width: 100%; }
+  .security-note { display: none; }
+  .actions-cell { flex-direction: column; }
+}

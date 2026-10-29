@@ -93,6 +93,35 @@ teachersRouter.patch('/:id/status', async (req, res) => {
   }
 });
 
+teachersRouter.post('/:id/reset-password', async (req, res) => {
+  const id = Number(req.params.id);
+  const newPassword = String(req.body?.newPassword ?? '');
+  if (!Number.isInteger(id)) throw httpError(400, 'Identificador inválido.');
+  if (!isStrongPassword(newPassword)) {
+    throw httpError(400, 'A nova senha deve ter 8 a 72 caracteres, com maiúscula, minúscula, número e símbolo.');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, name, email FROM users WHERE id = ? AND role = 'PROFESSOR'`,
+    [id]
+  );
+  const teacher = rows[0];
+  if (!teacher) throw httpError(404, 'Professor não encontrado.');
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
+
+  await writeAudit(pool, {
+    userId: req.user.id,
+    action: 'UPDATE',
+    entity: 'TEACHER',
+    entityId: id,
+    details: { action: 'reset_password', teacherName: teacher.name, teacherEmail: teacher.email }
+  });
+
+  res.json({ message: `Senha do professor ${teacher.name} redefinida com sucesso.` });
+});
+
 function cleanText(value, maxLength) {
   const text = String(value ?? '').trim().replace(/\s+/g, ' ');
   if (text.length > maxLength) throw httpError(400, `O texto deve ter no máximo ${maxLength} caracteres.`);

@@ -22,6 +22,14 @@ export class TeachersComponent implements OnInit {
   error = '';
   success = '';
   teacherForm = { name: '', email: '', password: '' };
+
+  // Reset password
+  showResetModal = false;
+  selectedTeacher: Teacher | null = null;
+  newPassword = '';
+  resetSaving = false;
+  resetError = '';
+
   readonly formatDate = formatDate;
 
   ngOnInit(): void { this.loadTeachers(); }
@@ -57,6 +65,9 @@ export class TeachersComponent implements OnInit {
 
   toggleStatus(teacher: Teacher): void {
     const active = !Boolean(teacher.active);
+    const action = active ? 'ativar' : 'desativar';
+    if (!confirm(`Deseja realmente ${action} o acesso do professor ${teacher.name}?`)) return;
+
     this.error = '';
     this.api.updateTeacherStatus(teacher.id, active).subscribe({
       next: () => {
@@ -66,5 +77,39 @@ export class TeachersComponent implements OnInit {
       error: () => this.error = 'Não foi possível alterar o acesso do professor.'
     });
   }
-}
 
+  openResetModal(teacher: Teacher): void {
+    this.selectedTeacher = teacher;
+    this.newPassword = '';
+    this.resetError = '';
+    this.showResetModal = true;
+  }
+
+  closeResetModal(): void {
+    this.showResetModal = false;
+    this.selectedTeacher = null;
+  }
+
+  submitResetPassword(): void {
+    if (this.resetSaving || !this.selectedTeacher) return;
+    if (this.newPassword.length < 8) {
+      this.resetError = 'A senha deve ter no mínimo 8 caracteres com maiúscula, minúscula, número e símbolo.';
+      return;
+    }
+
+    this.resetSaving = true;
+    this.resetError = '';
+
+    this.api.resetTeacherPassword(this.selectedTeacher.id, this.newPassword).subscribe({
+      next: (res) => {
+        this.success = res.message;
+        this.resetSaving = false;
+        this.closeResetModal();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.resetSaving = false;
+        this.resetError = typeof err.error?.message === 'string' ? err.error.message : 'Erro ao redefinir senha.';
+      }
+    });
+  }
+}

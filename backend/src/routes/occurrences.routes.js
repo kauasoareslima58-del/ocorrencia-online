@@ -42,12 +42,40 @@ occurrencesRouter.get('/', async (req, res) => {
   if (isDate(startDate)) { where.push('o.occurrence_date >= ?'); params.push(startDate); }
   if (isDate(endDate)) { where.push('o.occurrence_date <= ?'); params.push(endDate); }
 
-  const [rows] = await pool.execute(
-    `${occurrenceSelect} WHERE ${where.join(' AND ')}
-     ORDER BY o.occurrence_date DESC, o.occurrence_time DESC, o.id DESC LIMIT 500`,
+  const pageParam = Number(req.query.page);
+  const limitParam = Number(req.query.limit);
+  const isPaginated = Number.isInteger(pageParam) && pageParam > 0;
+  const page = isPaginated ? pageParam : 1;
+  const limit = Number.isInteger(limitParam) && limitParam > 0 && limitParam <= 100 ? limitParam : 20;
+  const offset = (page - 1) * limit;
+
+  const [countRows] = await pool.execute(
+    `SELECT COUNT(DISTINCT o.id) AS total
+     FROM occurrences o
+     INNER JOIN categories c ON c.id = o.category_id
+     INNER JOIN locations l ON l.id = o.location_id
+     INNER JOIN users u ON u.id = o.created_by
+     WHERE ${where.join(' AND ')}`,
     params
   );
-  res.json(await attachStudents(rows, pool, req.user));
+  const total = Number(countRows[0]?.total ?? 0);
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  const [rows] = await pool.execute(
+    `${occurrenceSelect} WHERE ${where.join(' AND ')}
+     ORDER BY o.occurrence_date DESC, o.occurrence_time DESC, o.id DESC
+     LIMIT ${limit} OFFSET ${offset}`,
+    params
+  );
+  const items = await attachStudents(rows, pool, req.user);
+
+  res.json({
+    items,
+    total,
+    page,
+    limit,
+    totalPages
+  });
 });
 
 occurrencesRouter.post('/', allowRoles('PROFESSOR', 'ADMINISTRADOR'), async (req, res) => {
@@ -111,7 +139,7 @@ occurrencesRouter.get('/:id', async (req, res) => {
   res.json(occurrence);
 });
 
-occurrencesRouter.patch('/:id', allowRoles('ADMINISTRADOR'), async (req, res) => {
+occurrencesRouter.patch('/:id', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async (req, res) => {
   const id = Number(req.params.id);
   const categoryId = Number(req.body?.categoryId);
   const locationId = Number(req.body?.locationId);
@@ -128,11 +156,22 @@ occurrencesRouter.patch('/:id', allowRoles('ADMINISTRADOR'), async (req, res) =>
   try {
     await connection.beginTransaction();
     const [[occurrenceRows], [categoryRows], [locationRows]] = await Promise.all([
-      connection.execute('SELECT id, protocol FROM occurrences WHERE id = ? FOR UPDATE', [id]),
+      connection.execute('SELECT id, protocol, created_by, status FROM occurrences WHERE id = ? FOR UPDATE', [id]),
       connection.execute('SELECT id FROM categories WHERE id = ? AND active = TRUE', [categoryId]),
       connection.execute('SELECT id FROM locations WHERE id = ? AND active = TRUE', [locationId])
     ]);
     if (!occurrenceRows.length) throw httpError(404, 'Ocorrência não encontrada.');
+    const occurrence = occurrenceRows[0];
+
+    if (req.user.role === 'PROFESSOR') {
+      if (occurrence.created_by !== req.user.id) {
+        throw httpError(403, 'Você só pode editar ocorrências que você registrou.');
+      }
+      if (occurrence.status !== 'PENDENTE') {
+        throw httpError(403, 'A ocorrência já está em análise e só pode ser alterada pela administração.');
+      }
+    }
+
     if (!categoryRows.length || !locationRows.length) throw httpError(400, 'Categoria ou local não está disponível.');
     await connection.execute(
       `UPDATE occurrences SET occurrence_date = ?, occurrence_time = ?, category_id = ?, location_id = ?,
@@ -141,7 +180,7 @@ occurrencesRouter.patch('/:id', allowRoles('ADMINISTRADOR'), async (req, res) =>
     );
     await writeAudit(connection, {
       userId: req.user.id, action: 'UPDATE', entity: 'OCCURRENCE', entityId: id,
-      details: { protocol: occurrenceRows[0].protocol, fields: ['occurrenceDate', 'occurrenceTime', 'categoryId', 'locationId', 'description', 'priority'] }
+      details: { protocol: occurrence.protocol, fields: ['occurrenceDate', 'occurrenceTime', 'categoryId', 'locationId', 'description', 'priority'] }
     });
     await connection.commit();
     res.json(await getOccurrenceById(id, req.user));
@@ -153,34 +192,52 @@ occurrencesRouter.patch('/:id', allowRoles('ADMINISTRADOR'), async (req, res) =>
   }
 });
 
-occurrencesRouter.post('/:id/updates', allowRoles('ADMINISTRADOR'), async (req, res) => {
+occurrencesRouter.post('/:id/updates', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async (req, res) => {
   const id = Number(req.params.id);
   const observation = optionalText(req.body?.observation, 1000);
   const actionTaken = optionalText(req.body?.actionTaken, 1000);
   const newStatus = String(req.body?.newStatus ?? '');
   if (!Number.isInteger(id)) throw httpError(400, 'Identificador inválido.');
-  if (!statuses.has(newStatus)) throw httpError(400, 'Status inválido.');
 
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
-    const [[occurrence]] = await connection.execute('SELECT id, protocol, status FROM occurrences WHERE id = ? FOR UPDATE', [id]);
+    const [[occurrence]] = await connection.execute('SELECT id, protocol, status, created_by FROM occurrences WHERE id = ? FOR UPDATE', [id]);
     if (!occurrence) throw httpError(404, 'Ocorrência não encontrada.');
-    if (!observation && !actionTaken && newStatus === occurrence.status) throw httpError(400, 'Nenhuma alteração foi informada.');
+
+    if (req.user.role === 'PROFESSOR' && occurrence.created_by !== req.user.id) {
+      throw httpError(403, 'Professores só podem registrar acompanhamento nas ocorrências que criaram.');
+    }
+
+    const statusToApply = req.user.role === 'ADMINISTRADOR' && statuses.has(newStatus)
+      ? newStatus
+      : occurrence.status;
+
+    if (!observation && !actionTaken && statusToApply === occurrence.status) {
+      throw httpError(400, 'Nenhuma observação ou alteração foi informada.');
+    }
 
     await connection.execute(
       `INSERT INTO occurrence_updates
        (occurrence_id, observation, action_taken, previous_status, new_status, created_by)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, observation, actionTaken, occurrence.status, newStatus, req.user.id]
+      [id, observation, actionTaken, occurrence.status, statusToApply, req.user.id]
     );
-    await connection.execute('UPDATE occurrences SET status = ? WHERE id = ?', [newStatus, id]);
+    if (statusToApply !== occurrence.status) {
+      await connection.execute('UPDATE occurrences SET status = ? WHERE id = ?', [statusToApply, id]);
+    }
     await writeAudit(connection, {
       userId: req.user.id,
       action: 'UPDATE',
       entity: 'OCCURRENCE',
       entityId: id,
-      details: { protocol: occurrence.protocol, previousStatus: occurrence.status, newStatus, observationAdded: !!observation, actionAdded: !!actionTaken }
+      details: {
+        protocol: occurrence.protocol,
+        previousStatus: occurrence.status,
+        newStatus: statusToApply,
+        observationAdded: !!observation,
+        actionAdded: !!actionTaken
+      }
     });
     await connection.commit();
     res.json({ message: 'Atualização registrada com sucesso.' });

@@ -7,27 +7,63 @@
 
     <nav>
       <a routerLink="/painel" routerLinkActive="active" (click)="closeMenu()" title="Painel">
-        <span class="nav-icon">▦</span><span class="nav-label">Painel</span>
+        <span class="nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/>
+            <rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+          </svg>
+        </span>
+        <span class="nav-label">Painel</span>
       </a>
+
       @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
         <a routerLink="/nova-ocorrencia" routerLinkActive="active" (click)="closeMenu()" title="Nova ocorrência">
-          <span class="nav-icon">＋</span><span class="nav-label">Nova ocorrência</span>
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/>
+            </svg>
+          </span>
+          <span class="nav-label">Nova ocorrência</span>
         </a>
       }
+
       <a routerLink="/ocorrencias" routerLinkActive="active" (click)="closeMenu()" title="Ocorrências">
-        <span class="nav-icon">☷</span><span class="nav-label">Ocorrências</span>
+        <span class="nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/>
+          </svg>
+        </span>
+        <span class="nav-label">Ocorrências</span>
       </a>
+
       @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
         <a routerLink="/alunos" routerLinkActive="active" (click)="closeMenu()" title="Alunos e turmas">
-          <span class="nav-icon">♙</span><span class="nav-label">Alunos e turmas</span>
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+          </span>
+          <span class="nav-label">Alunos e turmas</span>
         </a>
       }
+
       @if (auth.hasRole('ADMINISTRADOR')) {
         <a routerLink="/professores" routerLinkActive="active" (click)="closeMenu()" title="Cadastrar professores">
-          <span class="nav-icon">♟</span><span class="nav-label">Cadastrar professores</span>
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </span>
+          <span class="nav-label">Professores</span>
         </a>
+
         <a routerLink="/auditoria" routerLinkActive="active" (click)="closeMenu()" title="Auditoria">
-          <span class="nav-icon">↻</span><span class="nav-label">Auditoria</span>
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </span>
+          <span class="nav-label">Auditoria</span>
         </a>
       }
     </nav>
@@ -48,6 +84,7 @@
         <div class="user-menu">
           <span class="avatar">{{ user.name.charAt(0) }}</span>
           <span class="user-copy"><strong>{{ user.name }}</strong><small>{{ roleLabel(user.role) }}</small></span>
+          <button class="action-btn-subtle" (click)="openPasswordModal()" title="Alterar minha senha">Alterar Senha</button>
           <button class="logout-button" (click)="logout()" title="Sair">Sair</button>
         </div>
       }
@@ -55,3 +92,72 @@
     <main class="page-container"><router-outlet /></main>
   </section>
 </div>
+
+@if (showPasswordModal) {
+  <div class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Alterar Minha Senha</h3>
+        <button class="close-btn" (click)="closePasswordModal()">✕</button>
+      </div>
+
+      <form (ngSubmit)="submitPasswordChange()" #passForm="ngForm">
+        <label for="currentPassword">Senha Atual</label>
+        <input id="currentPassword" name="currentPassword" type="password" required [(ngModel)]="passwordForm.currentPassword" placeholder="Digite sua senha atual">
+
+        <label for="newPassword">Nova Senha</label>
+        <input id="newPassword" name="newPassword" type="password" required minlength="8" [(ngModel)]="passwordForm.newPassword" placeholder="Mínimo 8 caracteres (A-Z, a-z, 0-9, símbolo)">
+
+        <label for="confirmPassword">Confirmar Nova Senha</label>
+        <input id="confirmPassword" name="confirmPassword" type="password" required minlength="8" [(ngModel)]="passwordForm.confirmPassword" placeholder="Confirme a nova senha">
+
+        @if (passwordError) {
+          <p class="modal-error">{{ passwordError }}</p>
+        }
+        @if (passwordSuccess) {
+          <p class="modal-success">{{ passwordSuccess }}</p>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closePasswordModal()">Cancelar</button>
+          <button type="submit" class="btn-save" [disabled]="passwordSaving || passForm.invalid">{{ passwordSaving ? 'Salvando…' : 'Salvar Senha' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (showPasswordModal) {
+  <div class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Alterar Minha Senha</h3>
+        <button class="close-btn" (click)="closePasswordModal()">✕</button>
+      </div>
+
+      <form (ngSubmit)="submitPasswordChange()" #passForm="ngForm">
+        <label for="currentPassword">Senha Atual</label>
+        <input id="currentPassword" name="currentPassword" type="password" required [(ngModel)]="passwordForm.currentPassword" placeholder="Digite sua senha atual">
+
+        <label for="newPassword">Nova Senha</label>
+        <input id="newPassword" name="newPassword" type="password" required minlength="8" [(ngModel)]="passwordForm.newPassword" placeholder="Mínimo 8 caracteres (A-Z, a-z, 0-9, símbolo)">
+
+        <label for="confirmPassword">Confirmar Nova Senha</label>
+        <input id="confirmPassword" name="confirmPassword" type="password" required minlength="8" [(ngModel)]="passwordForm.confirmPassword" placeholder="Confirme a nova senha">
+
+        @if (passwordError) {
+          <p class="modal-error">{{ passwordError }}</p>
+        }
+        @if (passwordSuccess) {
+          <p class="modal-success">{{ passwordSuccess }}</p>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closePasswordModal()">Cancelar</button>
+          <button type="submit" class="btn-save" [disabled]="passwordSaving || passForm.invalid">{{ passwordSaving ? 'Salvando…' : 'Salvar Senha' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+

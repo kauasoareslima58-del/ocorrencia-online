@@ -4,7 +4,7 @@
 </section>
 
 <section class="filter-card">
-  <form (ngSubmit)="load()">
+  <form (ngSubmit)="load(true)">
     <div class="field field-search"><label for="search">Aluno, protocolo ou descrição</label><input id="search" name="search" [(ngModel)]="filters.search" placeholder="Digite para pesquisar"></div>
     <div class="field"><label for="status">Status</label><select id="status" name="status" [(ngModel)]="filters.status"><option value="">Todos</option><option value="PENDENTE">Pendente</option><option value="EM_ANALISE">Em análise</option><option value="EM_ACOMPANHAMENTO">Em acompanhamento</option><option value="ENCERRADA">Encerrada</option></select></div>
     <div class="field"><label for="category">Categoria</label><input id="category" name="category" [(ngModel)]="filters.category" placeholder="Ex.: Comportamento"></div>
@@ -17,7 +17,13 @@
 </section>
 
 <section class="content-card">
-  <div class="card-heading"><div><h2>Registros encontrados</h2><p>{{ occurrences.length }} ocorrência(s)</p></div></div>
+  <div class="card-heading">
+    <div>
+      <h2>Registros encontrados</h2>
+      <p>{{ total }} ocorrência(s) no total</p>
+    </div>
+  </div>
+
   @if (loading) { <div class="empty-state">Carregando ocorrências…</div> }
   @else if (error) { <div class="empty-state error">{{ error }}</div> }
   @else if (occurrences.length) {
@@ -39,5 +45,18 @@
         </tbody>
       </table>
     </div>
+
+    @if (totalPages > 1) {
+      <div class="pagination-bar">
+        <span class="pagination-info">Página {{ page }} de {{ totalPages }} ({{ total }} registros)</span>
+        <div class="pagination-buttons">
+          <button type="button" class="page-btn" [disabled]="page <= 1" (click)="goToPage(page - 1)">‹ Anterior</button>
+          @for (p of pages; track p) {
+            <button type="button" class="page-btn num-btn" [class.active]="page === p" (click)="goToPage(p)">{{ p }}</button>
+          }
+          <button type="button" class="page-btn" [disabled]="page >= totalPages" (click)="goToPage(page + 1)">Próxima ›</button>
+        </div>
+      </div>
+    }
   } @else { <div class="empty-state"><strong>Nenhum registro encontrado.</strong><span>Altere os filtros e tente novamente.</span></div> }
 </section>

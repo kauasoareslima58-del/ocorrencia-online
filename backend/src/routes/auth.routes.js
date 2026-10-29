@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../config/db.js';
 import { env } from '../config/env.js';
+import { authenticate } from '../middleware/auth.js';
 import { writeAudit } from '../utils/audit.js';
 
 export const authRouter = Router();
@@ -32,3 +33,42 @@ authRouter.post('/login', async (req, res) => {
   res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, studentId: user.studentId ?? null } });
 });
 
+authRouter.post('/change-password', authenticate, async (req, res) => {
+  const currentPassword = String(req.body?.currentPassword ?? '');
+  const newPassword = String(req.body?.newPassword ?? '');
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ message: 'Informe a senha atual e a nova senha.' });
+  }
+
+  if (!isStrongPassword(newPassword)) {
+    return res.status(400).json({
+      message: 'A nova senha deve ter entre 8 e 72 caracteres, contendo letra maiúscula, minúscula, número e símbolo.'
+    });
+  }
+
+  const [rows] = await pool.execute('SELECT password_hash AS passwordHash FROM users WHERE id = ? LIMIT 1', [req.user.id]);
+  const user = rows[0];
+  if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+    return res.status(400).json({ message: 'Senha atual incorreta.' });
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, req.user.id]);
+
+  await writeAudit(pool, {
+    userId: req.user.id,
+    action: 'UPDATE',
+    entity: 'USER',
+    entityId: req.user.id,
+    details: { action: 'change_password' }
+  });
+
+  res.json({ message: 'Senha alterada com sucesso.' });
+});
+
+function isStrongPassword(password) {
+  return password.length >= 8 && password.length <= 72
+    && /[a-z]/.test(password) && /[A-Z]/.test(password)
+    && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
+}

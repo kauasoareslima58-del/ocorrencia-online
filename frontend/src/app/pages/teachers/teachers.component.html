@@ -22,17 +22,64 @@
   <div class="card-heading"><div><h2>Contas cadastradas</h2><p>{{ teachers.length }} professor(es)</p></div><span class="security-note">Cada ocorrência guarda o professor responsável</span></div>
   @if (loading) { <div class="empty-state">Carregando professores…</div> }
   @else if (teachers.length) {
-    <div class="table-wrap"><table><thead><tr><th>Professor</th><th>E-mail de acesso</th><th>Ocorrências registradas</th><th>Cadastro</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-      @for (teacher of teachers; track teacher.id) {
-        <tr>
-          <td><strong>{{ teacher.name }}</strong><small>Professor</small></td>
-          <td>{{ teacher.email }}</td>
-          <td><strong>{{ teacher.occurrenceCount }}</strong></td>
-          <td>{{ formatDate(teacher.createdAt) }}</td>
-          <td><span class="access-status" [class.inactive]="!teacher.active">{{ teacher.active ? 'Ativo' : 'Desativado' }}</span></td>
-          <td><button class="status-button" [class.activate]="!teacher.active" type="button" (click)="toggleStatus(teacher)">{{ teacher.active ? 'Desativar' : 'Ativar' }}</button></td>
-        </tr>
-      }
-    </tbody></table></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Professor</th>
+            <th>E-mail de acesso</th>
+            <th>Ocorrências registradas</th>
+            <th>Cadastro</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (teacher of teachers; track teacher.id) {
+            <tr>
+              <td><strong>{{ teacher.name }}</strong><small>Professor</small></td>
+              <td>{{ teacher.email }}</td>
+              <td><strong>{{ teacher.occurrenceCount }}</strong></td>
+              <td>{{ formatDate(teacher.createdAt) }}</td>
+              <td><span class="access-status" [class.inactive]="!teacher.active">{{ teacher.active ? 'Ativo' : 'Desativado' }}</span></td>
+              <td>
+                <div class="actions-cell">
+                  <button class="reset-button" type="button" (click)="openResetModal(teacher)" title="Redefinir senha deste professor">Redefinir Senha</button>
+                  <button class="status-button" [class.activate]="!teacher.active" type="button" (click)="toggleStatus(teacher)">
+                    {{ teacher.active ? 'Desativar' : 'Ativar' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   } @else { <div class="empty-state">Nenhum professor cadastrado.</div> }
 </section>
+
+<!-- Modal de Redefinir Senha do Professor -->
+@if (showResetModal && selectedTeacher) {
+  <div class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Redefinir Senha de Professor</h3>
+        <button class="close-btn" (click)="closeResetModal()">✕</button>
+      </div>
+
+      <p class="reset-instruction">Defina uma nova senha para o professor <strong>{{ selectedTeacher.name }}</strong> ({{ selectedTeacher.email }}):</p>
+
+      <form (ngSubmit)="submitResetPassword()" #resetForm="ngForm">
+        <label for="newTeacherPass">Nova Senha Provisória</label>
+        <input id="newTeacherPass" name="newTeacherPass" type="password" required minlength="8" [(ngModel)]="newPassword" placeholder="Mínimo 8 caracteres com símbolos">
+
+        @if (resetError) { <p class="modal-error">{{ resetError }}</p> }
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeResetModal()">Cancelar</button>
+          <button type="submit" class="btn-save" [disabled]="resetSaving || resetForm.invalid">{{ resetSaving ? 'Salvando…' : 'Redefinir Senha' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

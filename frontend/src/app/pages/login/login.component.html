@@ -37,14 +37,15 @@
       </form>
 
       <div class="demo-access">
-        <strong>Acessos para demonstração</strong>
-        <span>Professor: professor@monsenhor.edu.br</span>
-        <span>Administrador: admin@monsenhor.edu.br</span>
-        <span>Aluno: aluno@monsenhor.edu.br</span>
-        <small>As senhas estão no arquivo README do projeto.</small>
+        <strong>Acessos para demonstração (clique para preencher):</strong>
+        <div class="demo-buttons">
+          <button type="button" class="demo-pill" (click)="useDemo('professor')">Professor</button>
+          <button type="button" class="demo-pill" (click)="useDemo('admin')">Administrador</button>
+          <button type="button" class="demo-pill" (click)="useDemo('aluno')">Aluno</button>
+        </div>
+        <small>Ambiente com dados de teste. Altere as senhas antes de usar em produção.</small>
       </div>
       <p class="privacy">Acesso restrito. As atividades realizadas no sistema são registradas.</p>
     </div>
   </section>
 </main>
-

@@ -1,7 +1,10 @@
 <section class="page-heading">
-  <div><span class="eyebrow">Do 6º Ano à 3ª Série</span><h1>Alunos e turmas</h1><p>Cadastre alunos e consulte os registros separados por turma.</p></div>
+  <div><span class="eyebrow">Do 6º Ano à 3ª Série</span><h1>Alunos e turmas</h1><p>Cadastre alunos, gerencie turmas e consulte o histórico escolar.</p></div>
   @if (auth.hasRole('ADMINISTRADOR')) {
-    <button class="button button-primary" type="button" (click)="showForm = !showForm">{{ showForm ? 'Fechar cadastro' : '＋ Cadastrar aluno' }}</button>
+    <div class="heading-actions">
+      <button class="button button-secondary" type="button" (click)="openImportModal()">📁 Importar Planilha (CSV)</button>
+      <button class="button button-primary" type="button" (click)="showForm = !showForm">{{ showForm ? 'Fechar cadastro' : '＋ Cadastrar aluno' }}</button>
+    </div>
   }
 </section>
 
@@ -26,6 +29,9 @@
 <section class="filter-card">
   <div class="field search-field"><label for="studentSearch">Pesquisar aluno</label><input id="studentSearch" [(ngModel)]="search" (keyup.enter)="loadStudents()" placeholder="Nome ou matrícula"></div>
   <div class="field"><label for="classFilter">Filtrar por turma</label><select id="classFilter" [(ngModel)]="selectedClass" (change)="loadStudents()"><option value="">Todas as turmas</option>@for (className of classes; track className) { <option [value]="className">{{ classLabel(className) }}</option> }</select></div>
+  <div class="checkbox-field">
+    <label><input type="checkbox" [(ngModel)]="includeInactive" (change)="loadStudents()"> Exibir alunos inativos</label>
+  </div>
   <button class="button button-primary" type="button" (click)="loadStudents()">Pesquisar</button>
 </section>
 
@@ -35,26 +41,151 @@
     <div class="students-list">
       @if (loading) { <div class="empty-state">Carregando alunos…</div> }
       @for (student of students; track student.id) {
-        <button class="student-row" [class.active]="selectedStudent?.id === student.id" (click)="openHistory(student)">
-          <span class="avatar">{{ student.name.charAt(0) }}</span><span><strong>{{ student.name }}</strong><small>{{ student.registration }} · {{ student.className }}</small></span><b>{{ student.occurrenceCount || 0 }}</b>
-        </button>
-      } @empty { @if (!loading) { <div class="empty-state">Nenhum aluno encontrado nessa turma.</div> } }
+        <div class="student-row-wrapper" [class.inactive]="student.active === false || student.active === 0">
+          <button class="student-row" [class.active]="selectedStudent?.id === student.id" (click)="openHistory(student)">
+            <span class="avatar">{{ student.name.charAt(0) }}</span>
+            <span class="student-info">
+              <strong>{{ student.name }}</strong>
+              <small>{{ student.registration }} · {{ student.className }}</small>
+              @if (student.active === false || student.active === 0) {
+                <span class="badge-inactive">Inativo</span>
+              }
+            </span>
+            <b class="occurrence-count" title="Total de ocorrências">{{ student.occurrenceCount || 0 }}</b>
+          </button>
+
+          @if (auth.hasRole('ADMINISTRADOR')) {
+            <div class="student-actions">
+              <button class="icon-btn edit-btn" (click)="openEdit(student, $event)" title="Editar dados do aluno">✏️</button>
+              <button class="icon-btn status-btn" (click)="toggleStudentStatus(student, $event)" [title]="(student.active === false || student.active === 0) ? 'Reativar aluno' : 'Inativar aluno'">
+                {{ (student.active === false || student.active === 0) ? '🔄' : '🚫' }}
+              </button>
+            </div>
+          }
+        </div>
+      } @empty { @if (!loading) { <div class="empty-state">Nenhum aluno encontrado.</div> } }
     </div>
   </section>
 
   <section class="content-card history-panel">
     @if (!selectedStudent) {
-      <div class="history-placeholder"><span>♙</span><strong>Selecione um aluno</strong><p>O histórico de ocorrências aparecerá aqui.</p></div>
+      <div class="history-placeholder"><span>🎓</span><strong>Selecione um aluno</strong><p>O histórico de ocorrências aparecerá aqui.</p></div>
     } @else {
-      <div class="student-header"><span class="avatar large">{{ selectedStudent.name.charAt(0) }}</span><div><h2>{{ selectedStudent.name }}</h2><p>{{ selectedStudent.registration }} · {{ selectedStudent.className }}</p></div><strong>{{ history.length }} registro(s)</strong></div>
+      <div class="student-header">
+        <span class="avatar large">{{ selectedStudent.name.charAt(0) }}</span>
+        <div>
+          <h2>{{ selectedStudent.name }}</h2>
+          <p>{{ selectedStudent.registration }} · {{ selectedStudent.className }}</p>
+          @if (selectedStudent.guardianName) {
+            <small class="guardian-meta">Responsável: {{ selectedStudent.guardianName }} {{ selectedStudent.guardianPhone ? '· ' + selectedStudent.guardianPhone : '' }}</small>
+          }
+        </div>
+        <strong>{{ history.length }} registro(s)</strong>
+      </div>
       @if (historyLoading) { <div class="empty-state">Carregando histórico…</div> }
       @else if (history.length) {
         <div class="history-list">
           @for (item of history; track item.id) {
-            <a [routerLink]="['/ocorrencias', item.id]" class="history-row"><span class="date-box"><strong>{{ item.occurrenceDate.slice(8, 10) }}</strong><small>{{ item.occurrenceDate.slice(5, 7) }}/{{ item.occurrenceDate.slice(0, 4) }}</small></span><span><strong>{{ item.categoryName }}</strong><small>{{ item.protocol }} · {{ item.locationName }}</small><p>{{ item.description }}</p></span><span class="status-pill status-{{ item.status.toLowerCase() }}">{{ statusLabel(item.status) }}</span></a>
+            <a [routerLink]="['/ocorrencias', item.id]" class="history-row">
+              <span class="date-box"><strong>{{ item.occurrenceDate.slice(8, 10) }}</strong><small>{{ item.occurrenceDate.slice(5, 7) }}/{{ item.occurrenceDate.slice(0, 4) }}</small></span>
+              <span><strong>{{ item.categoryName }}</strong><small>{{ item.protocol }} · {{ item.locationName }}</small><p>{{ item.description }}</p></span>
+              <span class="status-pill status-{{ item.status.toLowerCase() }}">{{ statusLabel(item.status) }}</span>
+            </a>
           }
         </div>
       } @else { <div class="empty-state">Este aluno não possui ocorrências registradas.</div> }
     }
   </section>
 </div>
+
+<!-- Modal de Edição de Aluno -->
+@if (showEditModal) {
+  <div class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Editar Dados do Aluno</h3>
+        <button class="close-btn" (click)="closeEdit()">✕</button>
+      </div>
+      <form (ngSubmit)="submitEdit()" #editForm="ngForm">
+        <label for="editName">Nome Completo</label>
+        <input id="editName" name="editName" required minlength="3" [(ngModel)]="editStudentForm.name">
+
+        <label for="editRegistration">Matrícula</label>
+        <input id="editRegistration" name="editRegistration" required [(ngModel)]="editStudentForm.registration">
+
+        <div class="row-fields">
+          <div>
+            <label for="editGrade">Série</label>
+            <select id="editGrade" name="editGrade" required [(ngModel)]="editStudentForm.gradeLevel">
+              @for (grade of gradeLevels; track grade) { <option [value]="grade">{{ grade }}</option> }
+            </select>
+          </div>
+          <div>
+            <label for="editSection">Turma</label>
+            <select id="editSection" name="editSection" required [(ngModel)]="editStudentForm.section">
+              @for (section of sections; track section) { <option [value]="section">{{ section }}</option> }
+            </select>
+          </div>
+        </div>
+
+        <label for="editGuardian">Responsável</label>
+        <input id="editGuardian" name="editGuardian" [(ngModel)]="editStudentForm.guardianName" placeholder="Nome do responsável">
+
+        <label for="editPhone">Telefone</label>
+        <input id="editPhone" name="editPhone" [(ngModel)]="editStudentForm.guardianPhone" placeholder="(14) 99999-9999">
+
+        @if (editError) { <p class="modal-error">{{ editError }}</p> }
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeEdit()">Cancelar</button>
+          <button type="submit" class="btn-save" [disabled]="editSaving || editForm.invalid">{{ editSaving ? 'Salvando…' : 'Salvar Alterações' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal de Importação de CSV -->
+@if (showImportModal) {
+  <div class="modal-backdrop">
+    <div class="modal-card import-modal">
+      <div class="modal-header">
+        <h3>Importar Alunos via Planilha (CSV)</h3>
+        <button class="close-btn" (click)="closeImportModal()">✕</button>
+      </div>
+
+      <div class="import-instructions">
+        <p>Selecione um arquivo <strong>.CSV</strong> contendo as seguintes colunas (separadas por vírgula ou ponto-e-vírgula):</p>
+        <code>Matrícula, Nome do Aluno, Série/Turma, Nome do Responsável, Telefone</code>
+        <small>Exemplo: <code>20260050, Bruno Silveira, 1ª Série B, Marcos Silveira, (14) 99888-1122</code></small>
+      </div>
+
+      <div class="file-picker">
+        <label for="csvFileInput" class="file-label">Selecionar arquivo CSV</label>
+        <input id="csvFileInput" type="file" accept=".csv,text/csv" (change)="onFileSelected($event)">
+      </div>
+
+      @if (csvData.length) {
+        <div class="preview-box">
+          <strong>✓ {{ csvData.length }} aluno(s) prontos para importação</strong>
+          <ul>
+            @for (item of csvData.slice(0, 5); track item.registration) {
+              <li>{{ item.registration }} — {{ item.name }} ({{ item.className }})</li>
+            }
+          </ul>
+          @if (csvData.length > 5) { <small>... e mais {{ csvData.length - 5 }} aluno(s).</small> }
+        </div>
+      }
+
+      @if (importError) { <p class="modal-error">{{ importError }}</p> }
+      @if (importSuccess) { <p class="modal-success">{{ importSuccess }}</p> }
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="closeImportModal()">Fechar</button>
+        <button type="button" class="btn-save" (click)="submitBatchImport()" [disabled]="importing || !csvData.length">
+          {{ importing ? 'Importando…' : 'Confirmar e Importar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

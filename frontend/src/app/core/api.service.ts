@@ -1,7 +1,16 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { AuditLog, DashboardStats, NamedItem, Occurrence, Student, Teacher } from './models';
+import {
+  AuditLog,
+  BatchImportResponse,
+  DashboardStats,
+  NamedItem,
+  Occurrence,
+  PaginatedResponse,
+  Student,
+  Teacher
+} from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -12,12 +21,14 @@ export class ApiService {
     return this.http.get<DashboardStats>(`${this.base}/dashboard`);
   }
 
-  getOccurrences(filters: Record<string, string> = {}) {
+  getOccurrences(filters: Record<string, string | number> = {}) {
     let params = new HttpParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value) params = params.set(key, value);
+      if (value !== null && value !== undefined && value !== '') {
+        params = params.set(key, String(value));
+      }
     });
-    return this.http.get<Occurrence[]>(`${this.base}/occurrences`, { params });
+    return this.http.get<PaginatedResponse<Occurrence>>(`${this.base}/occurrences`, { params });
   }
 
   getOccurrence(id: number) {
@@ -36,15 +47,28 @@ export class ApiService {
     return this.http.post<OccurrenceUpdateResponse>(`${this.base}/occurrences/${id}/updates`, payload);
   }
 
-  getStudents(search = '', className = '') {
+  getStudents(search = '', className = '', includeInactive = false) {
     let params = new HttpParams();
     if (search) params = params.set('search', search);
     if (className) params = params.set('className', className);
+    if (includeInactive) params = params.set('includeInactive', 'true');
     return this.http.get<Student[]>(`${this.base}/students`, { params });
   }
 
   createStudent(payload: object) {
     return this.http.post<Student>(`${this.base}/students`, payload);
+  }
+
+  updateStudent(id: number, payload: object) {
+    return this.http.patch<Student>(`${this.base}/students/${id}`, payload);
+  }
+
+  updateStudentStatus(id: number, active: boolean) {
+    return this.http.patch<{ id: number; active: boolean; message: string }>(`${this.base}/students/${id}/status`, { active });
+  }
+
+  batchCreateStudents(students: Array<object>) {
+    return this.http.post<BatchImportResponse>(`${this.base}/students/batch`, { students });
   }
 
   getStudentHistory(id: number) {
@@ -69,6 +93,14 @@ export class ApiService {
 
   updateTeacherStatus(id: number, active: boolean) {
     return this.http.patch<Teacher>(`${this.base}/teachers/${id}/status`, { active });
+  }
+
+  resetTeacherPassword(id: number, newPassword: string) {
+    return this.http.post<{ message: string }>(`${this.base}/teachers/${id}/reset-password`, { newPassword });
+  }
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return this.http.post<{ message: string }>(`${this.base}/auth/change-password`, { currentPassword, newPassword });
   }
 }
 

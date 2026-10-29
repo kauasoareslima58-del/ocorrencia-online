@@ -29,8 +29,11 @@ label:not(:first-child) { margin-top: 1rem; }
 .submit-button { height: 52px; margin-top: 1.3rem; border: 0; border-radius: 10px; color: white; background: linear-gradient(90deg, #082f59, #0b477e); font: inherit; font-weight: 800; cursor: pointer; box-shadow: 0 12px 24px rgb(8 47 89 / 20%); }
 .submit-button:disabled { cursor: not-allowed; opacity: .58; }
 .error-message { margin: .8rem 0 0; padding: .7rem .8rem; border-radius: 8px; color: #9c1c1c; background: #fff0f0; font-size: .85rem; }
-.demo-access { display: grid; gap: .28rem; margin-top: 1.25rem; padding: .85rem 1rem; border: 1px solid #d8e2ec; border-radius: 10px; color: #50647a; background: #f9fbfd; font-size: .76rem; }
+.demo-access { display: grid; gap: .5rem; margin-top: 1.25rem; padding: .85rem 1rem; border: 1px solid #d8e2ec; border-radius: 10px; color: #50647a; background: #f9fbfd; font-size: .76rem; }
 .demo-access strong { color: var(--navy); font-size: .8rem; }
+.demo-buttons { display: flex; flex-wrap: wrap; gap: .4rem; }
+.demo-pill { border: 1px solid #b8cee5; background: white; color: #124b80; padding: .35rem .7rem; border-radius: 6px; font-weight: 700; font-size: .75rem; cursor: pointer; transition: all .15s ease; }
+.demo-pill:hover { background: #e8f1fb; border-color: #1c5c96; }
 .demo-access small { color: #78899a; }
 .privacy { margin: 1.2rem 0 0; color: #7a8999; font-size: .75rem; text-align: center; }
 @media (max-width: 960px) {
@@ -45,4 +48,3 @@ label:not(:first-child) { margin-top: 1rem; }
   .values { display: none; }
   .logo { width: 105px; height: 105px; }
 }
-

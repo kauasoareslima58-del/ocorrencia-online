@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
+import { pool } from '../config/db.js';
 
-export function authenticate(req, res, next) {
+export async function authenticate(req, res, next) {
   const authorization = req.headers.authorization;
   if (!authorization?.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Autenticação necessária.' });
@@ -9,9 +10,16 @@ export function authenticate(req, res, next) {
 
   try {
     const payload = jwt.verify(authorization.slice(7), env.jwtSecret);
+    const userId = Number(payload.sub);
+    const [rows] = await pool.execute('SELECT id, role, active FROM users WHERE id = ? LIMIT 1', [userId]);
+    const user = rows[0];
+    if (!user || !user.active) {
+      return res.status(401).json({ message: 'Usuário inativo ou não encontrado.' });
+    }
+
     req.user = {
-      id: Number(payload.sub),
-      role: payload.role,
+      id: userId,
+      role: user.role,
       studentId: payload.studentId ? Number(payload.studentId) : null
     };
     return next();
@@ -25,4 +33,3 @@ export function allowRoles(...roles) {
     ? next()
     : res.status(403).json({ message: 'Seu perfil não possui permissão para esta ação.' });
 }
-

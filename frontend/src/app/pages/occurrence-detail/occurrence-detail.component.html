@@ -1,25 +1,37 @@
-<section class="page-heading compact">
+<section class="page-heading compact no-print">
   <div><a class="back-link" routerLink="/ocorrencias">← Voltar para ocorrências</a><h1>Detalhes da ocorrência</h1></div>
+  @if (occurrence) {
+    <button class="button button-secondary print-action-btn" type="button" (click)="printOfficialSheet()">🖨️ Imprimir Ficha Oficial</button>
+  }
 </section>
 
-@if (loading) { <div class="state-card">Carregando ocorrência…</div> }
+@if (loading) { <div class="state-card no-print">Carregando ocorrência…</div> }
 @else if (error && !occurrence) {
-  <div class="state-card error">
+  <div class="state-card error no-print">
     <strong>Não foi possível abrir a ocorrência.</strong>
     <span>{{ error }}</span>
     <button class="button button-secondary retry-button" type="button" (click)="load()">Tentar novamente</button>
   </div>
 }
 @else if (occurrence; as item) {
-  <section class="protocol-bar">
+  <section class="protocol-bar no-print">
     <div><span>Protocolo</span><strong>{{ item.protocol }}</strong></div>
-    <div class="protocol-meta"><span class="priority priority-{{ item.priority.toLowerCase() }}">Prioridade {{ priorityLabel(item.priority) }}</span><span class="status-pill {{ statusClass(item.status) }}">{{ statusLabel(item.status) }}</span></div>
+    <div class="protocol-meta">
+      <span class="priority priority-{{ item.priority.toLowerCase() }}">Prioridade {{ priorityLabel(item.priority) }}</span>
+      <span class="status-pill {{ statusClass(item.status) }}">{{ statusLabel(item.status) }}</span>
+    </div>
   </section>
 
-  <div class="detail-layout">
+  <div class="detail-layout no-print">
     <div class="main-column">
       <section class="detail-card">
-        <div class="card-title"><div><h2>Informações do registro</h2><span>Criado em {{ formatDateTime(item.createdAt) }}</span></div>@if (auth.hasRole('ADMINISTRADOR') && !editMode) { <button class="edit-button" type="button" (click)="editMode = true">Editar dados</button> }</div>
+        <div class="card-title">
+          <div><h2>Informações do registro</h2><span>Criado em {{ formatDateTime(item.createdAt) }}</span></div>
+          @if (canEditOccurrence && !editMode) {
+            <button class="edit-button" type="button" (click)="editMode = true">Editar dados</button>
+          }
+        </div>
+
         @if (editMode) {
           <form class="edit-form" (ngSubmit)="saveDetails()" #editForm="ngForm">
             <div><label for="editDate">Data</label><input id="editDate" name="editDate" type="date" required [(ngModel)]="editModel.occurrenceDate"></div>
@@ -49,7 +61,9 @@
               <span class="timeline-dot"></span>
               <div class="timeline-content">
                 <div><strong>{{ update.authorName }}</strong><small>{{ roleLabel(update.authorRole) }} · {{ formatDateTime(update.createdAt) }}</small></div>
-                @if (update.previousStatus && update.newStatus && update.previousStatus !== update.newStatus) { <p class="status-change">Status alterado de <b>{{ statusLabel(update.previousStatus) }}</b> para <b>{{ statusLabel(update.newStatus) }}</b>.</p> }
+                @if (update.previousStatus && update.newStatus && update.previousStatus !== update.newStatus) {
+                  <p class="status-change">Status alterado de <b>{{ statusLabel(update.previousStatus) }}</b> para <b>{{ statusLabel(update.newStatus) }}</b>.</p>
+                }
                 @if (update.observation) { <p><span>Observação:</span> {{ update.observation }}</p> }
                 @if (update.actionTaken) { <p><span>Providência:</span> {{ update.actionTaken }}</p> }
               </div>
@@ -65,21 +79,43 @@
         <div class="card-title"><h2>Alunos envolvidos</h2><span>{{ item.students.length }} aluno(s)</span></div>
         <div class="involved-list">
           @for (student of item.students; track student.id) {
-            <div class="involved-student"><span>{{ student.name.charAt(0) }}</span><div><strong>{{ student.name }}</strong><small>{{ student.registration }} · {{ student.className }}</small></div></div>
+            <div class="involved-student">
+              <span>{{ student.name.charAt(0) }}</span>
+              <div>
+                <strong>{{ student.name }}</strong>
+                <small>{{ student.registration }} · {{ student.className }}</small>
+                @if (student.guardianName) {
+                  <small class="student-guardian">Resp: {{ student.guardianName }} ({{ student.guardianPhone || 'S/ telefone' }})</small>
+                }
+              </div>
+            </div>
           }
         </div>
       </section>
 
-      @if (auth.hasRole('ADMINISTRADOR')) {
+      @if (canAddUpdate) {
         <section class="detail-card update-card">
-          <div class="card-title"><h2>Atualizar ocorrência</h2><span>Ação administrativa</span></div>
+          <div class="card-title">
+            <h2>Registrar Acompanhamento</h2>
+            <span>{{ auth.hasRole('ADMINISTRADOR') ? 'Ação administrativa' : 'Acompanhamento do professor' }}</span>
+          </div>
           <form (ngSubmit)="addUpdate()">
-            <label for="newStatus">Status</label>
-            <select id="newStatus" name="newStatus" [(ngModel)]="updateModel.newStatus"><option value="PENDENTE">Pendente</option><option value="EM_ANALISE">Em análise</option><option value="EM_ACOMPANHAMENTO">Em acompanhamento</option><option value="ENCERRADA">Encerrada</option></select>
-            <label for="observation">Observação</label>
-            <textarea id="observation" name="observation" rows="3" maxlength="1000" [(ngModel)]="updateModel.observation" placeholder="Informação complementar"></textarea>
+            @if (auth.hasRole('ADMINISTRADOR')) {
+              <label for="newStatus">Alterar Status</label>
+              <select id="newStatus" name="newStatus" [(ngModel)]="updateModel.newStatus">
+                <option value="PENDENTE">Pendente</option>
+                <option value="EM_ANALISE">Em análise</option>
+                <option value="EM_ACOMPANHAMENTO">Em acompanhamento</option>
+                <option value="ENCERRADA">Encerrada</option>
+              </select>
+            }
+
+            <label for="observation">Observação complementar</label>
+            <textarea id="observation" name="observation" rows="3" maxlength="1000" [(ngModel)]="updateModel.observation" placeholder="Informação adicional ou evolução do caso"></textarea>
+
             <label for="actionTaken">Providência tomada</label>
-            <textarea id="actionTaken" name="actionTaken" rows="3" maxlength="1000" [(ngModel)]="updateModel.actionTaken" placeholder="Descreva a providência"></textarea>
+            <textarea id="actionTaken" name="actionTaken" rows="3" maxlength="1000" [(ngModel)]="updateModel.actionTaken" placeholder="Encaminhamento ou medida pedagógica"></textarea>
+
             @if (error) { <p class="form-message error">{{ error }}</p> }
             @if (success) { <p class="form-message success">{{ success }}</p> }
             <button class="button button-primary full" type="submit" [disabled]="saving">{{ saving ? 'Salvando…' : 'Salvar atualização' }}</button>
@@ -88,4 +124,99 @@
       }
     </aside>
   </div>
+
+  <!-- Ficha Oficial para Impressão (Exibida somente ao Imprimir) -->
+  <section class="print-official-sheet">
+    <div class="print-header">
+      <div class="print-emblem">
+        <img src="images/logo-monsenhor-bicudo.png" alt="Logo da Escola">
+      </div>
+      <div class="print-title">
+        <span>GOVERNO DO ESTADO DE SÃO PAULO — SECRETARIA DA EDUCAÇÃO</span>
+        <h2>E.E. MONSENHOR BICUDO</h2>
+        <strong>TERMO DE REGISTRO E NOTIFICAÇÃO DE OCORRÊNCIA ESCOLAR</strong>
+      </div>
+    </div>
+
+    <div class="print-meta-grid">
+      <div><strong>Protocolo:</strong> {{ item.protocol }}</div>
+      <div><strong>Data/Horário:</strong> {{ formatDate(item.occurrenceDate) }} às {{ item.occurrenceTime.slice(0, 5) }}</div>
+      <div><strong>Local:</strong> {{ item.locationName }}</div>
+      <div><strong>Categoria:</strong> {{ item.categoryName }}</div>
+      <div><strong>Prioridade:</strong> {{ priorityLabel(item.priority) }}</div>
+      <div><strong>Registrante:</strong> {{ item.professorName }}</div>
+      <div><strong>Status Atual:</strong> {{ statusLabel(item.status) }}</div>
+    </div>
+
+    <div class="print-section">
+      <h3>1. Aluno(s) Envolvido(s)</h3>
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th>Nome do Aluno</th>
+            <th>Matrícula (RA)</th>
+            <th>Série / Turma</th>
+            <th>Responsável</th>
+            <th>Telefone</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of item.students; track s.id) {
+            <tr>
+              <td>{{ s.name }}</td>
+              <td>{{ s.registration }}</td>
+              <td>{{ s.className }}</td>
+              <td>{{ s.guardianName || '-' }}</td>
+              <td>{{ s.guardianPhone || '-' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="print-section">
+      <h3>2. Descrição Detalhada dos Fatos</h3>
+      <div class="print-box-content">{{ item.description }}</div>
+    </div>
+
+    <div class="print-section">
+      <h3>3. Histórico de Providências e Acompanhamento Pedagógico</h3>
+      @if (item.updates?.length) {
+        <div class="print-updates">
+          @for (u of item.updates ?? []; track u.id) {
+            <div class="print-update-item">
+              <span class="update-meta"><strong>{{ u.authorName }}</strong> ({{ roleLabel(u.authorRole) }}) — {{ formatDateTime(u.createdAt) }}:</span>
+              @if (u.observation) { <p><b>Observação:</b> {{ u.observation }}</p> }
+              @if (u.actionTaken) { <p><b>Providência:</b> {{ u.actionTaken }}</p> }
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="no-records">Sem providências adicionais registradas até a emissão deste documento.</p>
+      }
+    </div>
+
+    <div class="print-signatures">
+      <div class="signature-line">
+        <div class="line"></div>
+        <span>Assinatura do Aluno</span>
+      </div>
+      <div class="signature-line">
+        <div class="line"></div>
+        <span>Assinatura do Responsável</span>
+      </div>
+      <div class="signature-line">
+        <div class="line"></div>
+        <span>Professor(a) / Relator(a)</span>
+      </div>
+      <div class="signature-line">
+        <div class="line"></div>
+        <span>Coordenação Pedagógica / Direção</span>
+      </div>
+    </div>
+
+    <div class="print-footer">
+      <small>Documento gerado em {{ formatDateTime(item.updatedAt || item.createdAt) }} através do sistema Ocorrência Online — E.E. Monsenhor Bicudo.</small>
+    </div>
+  </section>
 }

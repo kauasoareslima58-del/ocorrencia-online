@@ -13,7 +13,7 @@ nav { display: grid; gap: .35rem; }
 nav a { display: flex; align-items: center; gap: .8rem; min-height: 48px; padding: .7rem .6rem; border-radius: 10px; color: #d7e6f5; text-decoration: none; font-weight: 600; white-space: nowrap; transition: color .18s ease, background .18s ease, box-shadow .18s ease; }
 nav a:hover { color: white; background: rgb(255 255 255 / 8%); }
 nav a.active { color: #08284c; background: linear-gradient(90deg, #e8bb54, #d9a62f); box-shadow: 0 8px 20px rgb(0 0 0 / 16%); }
-.nav-icon { width: 24px; flex: 0 0 24px; text-align: center; font-size: 1.2rem; }
+.nav-icon { width: 24px; flex: 0 0 24px; display: flex; align-items: center; justify-content: center; }
 .nav-label { opacity: 0; transform: translateX(-8px); transition: opacity .16s ease, transform .2s ease; }
 .sidebar:hover .nav-label { opacity: 1; transform: translateX(0); transition-delay: .08s; }
 .school-card { margin-top: auto; border: 1px solid rgb(255 255 255 / 13%); border-radius: 12px; overflow: hidden; background: rgb(255 255 255 / 5%); opacity: 0; visibility: hidden; transform: translateY(8px); pointer-events: none; transition: opacity .16s ease, transform .2s ease, visibility 0s linear .2s; }
@@ -31,9 +31,31 @@ nav a.active { color: #08284c; background: linear-gradient(90deg, #e8bb54, #d9a6
 .user-copy { display: grid; }
 .user-copy strong { font-size: .85rem; color: var(--text); }
 .user-copy small { font-size: .75rem; color: var(--muted); }
-.logout-button { padding: .55rem .75rem; border: 1px solid var(--border); border-radius: 8px; background: white; color: var(--navy); cursor: pointer; font-weight: 700; }
+.action-btn-subtle { padding: .55rem .75rem; border: 1px solid #c8d7e6; border-radius: 8px; background: #f0f4f9; color: var(--navy); cursor: pointer; font-size: .82rem; font-weight: 700; transition: background .15s; }
+.action-btn-subtle:hover { background: #e2ecf7; }
+.logout-button { padding: .55rem .75rem; border: 1px solid var(--border); border-radius: 8px; background: white; color: var(--navy); cursor: pointer; font-size: .82rem; font-weight: 700; transition: background .15s; }
+.logout-button:hover { background: #fafbfc; border-color: #adb5bd; }
 .page-container { padding: 2rem; max-width: 1600px; margin: 0 auto; }
 .backdrop { display: none; }
+
+/* Modal Styles */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(8, 25, 45, 0.55); backdrop-filter: blur(3px); z-index: 100; display: grid; place-items: center; padding: 1.5rem; }
+.modal-card { background: white; border-radius: 12px; width: min(460px, 100%); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); padding: 1.75rem; border: 1px solid #dce4ed; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+.modal-header h3 { margin: 0; font-size: 1.25rem; color: var(--navy); }
+.close-btn { border: 0; background: none; font-size: 1.25rem; color: #78899a; cursor: pointer; padding: .2rem .4rem; }
+.close-btn:hover { color: var(--navy); }
+.modal-card form { display: grid; gap: .75rem; }
+.modal-card label { font-size: .85rem; font-weight: 700; color: #2c3e50; }
+.modal-card input { width: 100%; height: 44px; padding: 0 .75rem; border: 1px solid #ccd6e1; border-radius: 8px; font: inherit; }
+.modal-card input:focus { outline: none; border-color: #1c5c96; }
+.modal-error { margin: .25rem 0; padding: .6rem; border-radius: 6px; background: #fff0f0; color: #b71c1c; font-size: .82rem; }
+.modal-success { margin: .25rem 0; padding: .6rem; border-radius: 6px; background: #e8f5e9; color: #2e7d32; font-size: .82rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: .75rem; margin-top: .75rem; }
+.btn-cancel { padding: .6rem 1rem; border: 1px solid #ccd6e1; background: white; border-radius: 8px; font-weight: 700; cursor: pointer; color: #4a5d6e; }
+.btn-save { padding: .6rem 1.25rem; border: 0; background: linear-gradient(90deg, #082f59, #0b477e); color: white; border-radius: 8px; font-weight: 700; cursor: pointer; }
+.btn-save:disabled { opacity: .6; cursor: not-allowed; }
+
 @media (max-width: 900px) {
   .app-shell, .app-shell:has(.sidebar:hover) { grid-template-columns: 1fr; transition: none; }
   .sidebar { position: fixed; left: 0; transform: translateX(-105%); width: min(290px, 86vw); padding: 1.25rem 1rem; overflow-y: auto; transition: transform .22s ease; }
@@ -53,5 +75,5 @@ nav a.active { color: #08284c; background: linear-gradient(90deg, #e8bb54, #d9a6
 @media (max-width: 560px) {
   .topbar-title span, .user-copy { display: none; }
   .topbar-title strong { font-size: .85rem; }
-  .logout-button { padding: .5rem; }
+  .action-btn-subtle, .logout-button { padding: .45rem .55rem; font-size: .75rem; }
 }

@@ -21,27 +21,67 @@ export class OccurrencesComponent implements OnInit {
   loading = true;
   error = '';
   filters = { search: '', status: '', category: '', className: '', startDate: '', endDate: '', professor: '' };
+
+  // Pagination
+  page = 1;
+  limit = 15;
+  total = 0;
+  totalPages = 1;
+
   readonly statusLabel = statusLabel;
   readonly priorityLabel = priorityLabel;
   readonly formatDate = formatDate;
   readonly classLabel = classLabel;
+
+  get pages(): number[] {
+    const pages: number[] = [];
+    const start = Math.max(1, this.page - 2);
+    const end = Math.min(this.totalPages, this.page + 2);
+    for (let p = start; p <= end; p++) {
+      pages.push(p);
+    }
+    return pages;
+  }
 
   ngOnInit(): void {
     this.api.getMetadata().subscribe(({ classes }) => this.classes = classes);
     this.load();
   }
 
-  load(): void {
+  load(pageReset = false): void {
+    if (pageReset) this.page = 1;
     this.loading = true;
     this.error = '';
-    this.api.getOccurrences(this.filters).subscribe({
-      next: (items) => { this.occurrences = items; this.loading = false; },
-      error: () => { this.error = 'Não foi possível carregar as ocorrências.'; this.loading = false; }
+
+    const queryParams: Record<string, string | number> = {
+      ...this.filters,
+      page: this.page,
+      limit: this.limit
+    };
+
+    this.api.getOccurrences(queryParams).subscribe({
+      next: (res) => {
+        this.occurrences = res.items || [];
+        this.total = res.total || 0;
+        this.page = res.page || 1;
+        this.totalPages = res.totalPages || 1;
+        this.loading = false;
+      },
+      error: () => {
+        this.error = 'Não foi possível carregar as ocorrências.';
+        this.loading = false;
+      }
     });
   }
 
   clearFilters(): void {
     this.filters = { search: '', status: '', category: '', className: '', startDate: '', endDate: '', professor: '' };
+    this.load(true);
+  }
+
+  goToPage(newPage: number): void {
+    if (newPage < 1 || newPage > this.totalPages || newPage === this.page) return;
+    this.page = newPage;
     this.load();
   }
 

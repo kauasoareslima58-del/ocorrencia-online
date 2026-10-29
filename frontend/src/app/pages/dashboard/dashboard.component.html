@@ -6,7 +6,7 @@
   </div>
   <div class="page-actions">
     @if (auth.hasRole('ADMINISTRADOR')) {
-      <a class="button button-secondary" routerLink="/professores">♟ Cadastrar professor</a>
+      <a class="button button-secondary" routerLink="/professores">Cadastrar professor</a>
     }
     @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
       <a class="button button-primary" routerLink="/nova-ocorrencia">＋ Registrar ocorrência</a>

@@ -9,7 +9,58 @@ form { display: grid; grid-template-columns: 2fr repeat(3, minmax(150px, 1fr)); 
 .card-heading { min-height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.3rem; border-bottom: 1px solid var(--border); }
 .card-heading h2 { margin: 0; color: var(--navy); font-size: 1.08rem; }
 .card-heading p { margin: .25rem 0 0; color: var(--muted); font-size: .82rem; }
-@media (max-width: 1200px) { form { grid-template-columns: repeat(3, 1fr); }.field-search { grid-column: span 2; } }
-@media (max-width: 720px) { form { grid-template-columns: 1fr 1fr; }.field-search { grid-column: 1 / -1; } }
-@media (max-width: 500px) { form { grid-template-columns: 1fr; }.field-search { grid-column: auto; }.filter-actions { grid-column: auto; } }
 
+.pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.3rem;
+  border-top: 1px solid var(--border);
+  background: #fbfcfd;
+}
+
+.pagination-info {
+  font-size: .82rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pagination-buttons {
+  display: flex;
+  gap: .35rem;
+}
+
+.page-btn {
+  padding: .4rem .75rem;
+  border: 1px solid #ccd6e1;
+  background: white;
+  border-radius: 6px;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--navy);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #eef4fb;
+  border-color: #9cbddc;
+}
+
+.page-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.page-btn.num-btn.active {
+  background: var(--navy);
+  color: white;
+  border-color: var(--navy);
+}
+
+@media (max-width: 1200px) { form { grid-template-columns: repeat(3, 1fr); }.field-search { grid-column: span 2; } }
+@media (max-width: 720px) {
+  form { grid-template-columns: 1fr 1fr; }.field-search { grid-column: 1 / -1; }
+  .pagination-bar { flex-direction: column; gap: .75rem; }
+}
+@media (max-width: 500px) { form { grid-template-columns: 1fr; }.field-search { grid-column: auto; }.filter-actions { grid-column: auto; } }
