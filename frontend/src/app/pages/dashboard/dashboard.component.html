@@ -2,7 +2,7 @@
   <div>
     <span class="eyebrow">Visão geral</span>
     <h1>Olá, {{ auth.currentUser?.name }}.</h1>
-    <p>{{ auth.hasRole('ALUNO') ? 'Acompanhe as ocorrências registradas em seu nome.' : 'Acompanhe a situação das ocorrências da escola.' }}</p>
+    <p>Acompanhe a situação das ocorrências da escola.</p>
   </div>
   <div class="page-actions">
     @if (auth.hasRole('ADMINISTRADOR')) {
@@ -20,11 +20,11 @@
   <div class="state-card error">{{ error }}</div>
 } @else if (stats; as data) {
   <section class="metric-grid" aria-label="Indicadores de ocorrências">
-    <article class="metric total"><span>Total</span><strong>{{ data.totals.all }}</strong><small>ocorrências registradas</small></article>
-    <article class="metric pending"><span>Pendentes</span><strong>{{ data.totals.pending }}</strong><small>aguardando análise</small></article>
-    <article class="metric analysis"><span>Em análise</span><strong>{{ data.totals.analysis }}</strong><small>em avaliação</small></article>
-    <article class="metric monitoring"><span>Acompanhamento</span><strong>{{ data.totals.monitoring }}</strong><small>com providências</small></article>
-    <article class="metric closed"><span>Encerradas</span><strong>{{ data.totals.closed }}</strong><small>casos finalizados</small></article>
+    <a class="metric total" routerLink="/ocorrencias"><span>Total</span><strong>{{ data.totals.all }}</strong><small>ocorrências registradas →</small></a>
+    <a class="metric pending" routerLink="/ocorrencias" [queryParams]="{ status: 'PENDENTE' }"><span>Pendentes</span><strong>{{ data.totals.pending }}</strong><small>aguardando análise →</small></a>
+    <a class="metric analysis" routerLink="/ocorrencias" [queryParams]="{ status: 'EM_ANALISE' }"><span>Em análise</span><strong>{{ data.totals.analysis }}</strong><small>em avaliação →</small></a>
+    <a class="metric monitoring" routerLink="/ocorrencias" [queryParams]="{ status: 'EM_ACOMPANHAMENTO' }"><span>Acompanhamento</span><strong>{{ data.totals.monitoring }}</strong><small>com providências →</small></a>
+    <a class="metric closed" routerLink="/ocorrencias" [queryParams]="{ status: 'ENCERRADA' }"><span>Encerradas</span><strong>{{ data.totals.closed }}</strong><small>casos finalizados →</small></a>
   </section>
 
   <section class="dashboard-grid">
@@ -51,16 +51,30 @@
       } @else { <div class="empty-state">Nenhuma ocorrência disponível.</div> }
     </article>
 
-    <article class="panel category-panel">
-      <div class="panel-heading"><div><h2>Por categoria</h2><p>Distribuição dos registros.</p></div></div>
-      <div class="category-list">
-        @for (category of data.byCategory; track category.name) {
-          <div class="category-row">
-            <span>{{ category.name }}</span><strong>{{ category.total }}</strong>
-            <div class="bar"><span [style.width.%]="data.totals.all ? (category.total / data.totals.all) * 100 : 0"></span></div>
-          </div>
-        } @empty { <div class="empty-state">Sem dados por categoria.</div> }
-      </div>
-    </article>
+    <div class="side-panels">
+      <article class="panel category-panel">
+        <div class="panel-heading"><div><h2>Por categoria</h2><p>Clique para filtrar por categoria.</p></div></div>
+        <div class="category-list">
+          @for (category of data.byCategory; track category.name) {
+            <a class="category-row clickable-stat" routerLink="/ocorrencias" [queryParams]="{ category: category.name }">
+              <span>{{ category.name }}</span><strong>{{ category.total }}</strong>
+              <div class="bar"><span [style.width.%]="data.totals.all ? (category.total / data.totals.all) * 100 : 0"></span></div>
+            </a>
+          } @empty { <div class="empty-state">Sem dados por categoria.</div> }
+        </div>
+      </article>
+
+      <article class="panel class-panel">
+        <div class="panel-heading"><div><h2>Por turma</h2><p>Turmas com mais registros.</p></div></div>
+        <div class="category-list">
+          @for (cls of data.byClass ?? []; track cls.name) {
+            <a class="category-row clickable-stat" routerLink="/ocorrencias" [queryParams]="{ className: cls.name }">
+              <span>{{ cls.name }}</span><strong>{{ cls.total }}</strong>
+              <div class="bar class-bar"><span [style.width.%]="data.totals.all ? (cls.total / data.totals.all) * 100 : 0"></span></div>
+            </a>
+          } @empty { <div class="empty-state">Sem dados por turma.</div> }
+        </div>
+      </article>
+    </div>
   </section>
 }

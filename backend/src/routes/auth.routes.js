@@ -14,9 +14,9 @@ authRouter.post('/login', async (req, res) => {
   if (!email || !password) return res.status(400).json({ message: 'Informe e-mail e senha.' });
 
   const [rows] = await pool.execute(
-    `SELECT u.id, u.name, u.email, u.password_hash AS passwordHash, u.role, s.id AS studentId
-     FROM users u LEFT JOIN students s ON s.user_id = u.id
-     WHERE u.email = ? AND u.active = TRUE LIMIT 1`,
+    `SELECT u.id, u.name, u.email, u.password_hash AS passwordHash, u.role
+     FROM users u
+     WHERE u.email = ? AND u.active = TRUE AND u.role IN ('ADMINISTRADOR', 'PROFESSOR') LIMIT 1`,
     [email]
   );
   const user = rows[0];
@@ -25,12 +25,12 @@ authRouter.post('/login', async (req, res) => {
   }
 
   const token = jwt.sign(
-    { role: user.role, studentId: user.studentId ?? null },
+    { role: user.role },
     env.jwtSecret,
     { subject: String(user.id), expiresIn: env.jwtExpiresIn, issuer: 'ocorrencia-online' }
   );
   await writeAudit(pool, { userId: user.id, action: 'LOGIN', entity: 'AUTH', details: { result: 'success' } });
-  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, studentId: user.studentId ?? null } });
+  res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
 });
 
 authRouter.post('/change-password', authenticate, async (req, res) => {

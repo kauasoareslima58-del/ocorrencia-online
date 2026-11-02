@@ -19,9 +19,14 @@
 @if (success) { <div class="message success" role="status">{{ success }}</div> }
 
 <section class="teachers-card">
-  <div class="card-heading"><div><h2>Contas cadastradas</h2><p>{{ teachers.length }} professor(es)</p></div><span class="security-note">Cada ocorrência guarda o professor responsável</span></div>
+  <div class="card-heading">
+    <div><h2>Contas cadastradas</h2><p>{{ filteredTeachers.length }} professor(es)</p></div>
+    <div class="heading-search">
+      <input [(ngModel)]="search" placeholder="Pesquisar por nome ou e-mail...">
+    </div>
+  </div>
   @if (loading) { <div class="empty-state">Carregando professores…</div> }
-  @else if (teachers.length) {
+  @else if (filteredTeachers.length) {
     <div class="table-wrap">
       <table>
         <thead>
@@ -35,7 +40,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (teacher of teachers; track teacher.id) {
+          @for (teacher of filteredTeachers; track teacher.id) {
             <tr>
               <td><strong>{{ teacher.name }}</strong><small>Professor</small></td>
               <td>{{ teacher.email }}</td>
@@ -44,6 +49,7 @@
               <td><span class="access-status" [class.inactive]="!teacher.active">{{ teacher.active ? 'Ativo' : 'Desativado' }}</span></td>
               <td>
                 <div class="actions-cell">
+                  <button class="edit-button" type="button" (click)="openEditModal(teacher)" title="Editar nome ou e-mail">Editar</button>
                   <button class="reset-button" type="button" (click)="openResetModal(teacher)" title="Redefinir senha deste professor">Redefinir Senha</button>
                   <button class="status-button" [class.activate]="!teacher.active" type="button" (click)="toggleStatus(teacher)">
                     {{ teacher.active ? 'Desativar' : 'Ativar' }}
@@ -55,8 +61,35 @@
         </tbody>
       </table>
     </div>
-  } @else { <div class="empty-state">Nenhum professor cadastrado.</div> }
+  } @else { <div class="empty-state">Nenhum professor encontrado.</div> }
 </section>
+
+<!-- Modal de Editar Dados do Professor -->
+@if (showEditModal) {
+  <div class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Editar Dados do Professor</h3>
+        <button class="close-btn" (click)="closeEditModal()">✕</button>
+      </div>
+
+      <form (ngSubmit)="submitEditTeacher()" #editTeacherNgForm="ngForm">
+        <label for="editTeacherName">Nome Completo</label>
+        <input id="editTeacherName" name="editTeacherName" required minlength="3" maxlength="120" [(ngModel)]="editTeacherForm.name">
+
+        <label for="editTeacherEmail">E-mail de Acesso</label>
+        <input id="editTeacherEmail" name="editTeacherEmail" type="email" required maxlength="180" [(ngModel)]="editTeacherForm.email">
+
+        @if (editError) { <p class="modal-error">{{ editError }}</p> }
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeEditModal()">Cancelar</button>
+          <button type="submit" class="btn-save" [disabled]="editSaving || editTeacherNgForm.invalid">{{ editSaving ? 'Salvando…' : 'Salvar Alterações' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
 
 <!-- Modal de Redefinir Senha do Professor -->
 @if (showResetModal && selectedTeacher) {

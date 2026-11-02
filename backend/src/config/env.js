@@ -1,4 +1,10 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
+const currentDir = dirname(fileURLToPath(import.meta.url));
+dotenv.config();
+dotenv.config({ path: resolve(currentDir, '../../.env') });
 
 const required = ['DB_HOST', 'DB_USER', 'DB_NAME', 'JWT_SECRET'];
 const missing = required.filter((key) => !String(process.env[key] ?? '').trim());

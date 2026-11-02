@@ -6,6 +6,7 @@ import { LoginResponse, User, UserRole } from './models';
 
 const TOKEN_KEY = 'ocorrencia_online_token';
 const USER_KEY = 'ocorrencia_online_user';
+const ALLOWED_ROLES: UserRole[] = ['ADMINISTRADOR', 'PROFESSOR'];
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -44,11 +45,23 @@ export class AuthService {
   private readUser(): User | null {
     try {
       const value = localStorage.getItem(USER_KEY);
-      return value ? (JSON.parse(value) as User) : null;
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!value || !token) {
+        localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(TOKEN_KEY);
+        return null;
+      }
+      const parsed = JSON.parse(value) as User;
+      if (!parsed || !ALLOWED_ROLES.includes(parsed.role)) {
+        localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(TOKEN_KEY);
+        return null;
+      }
+      return parsed;
     } catch {
       localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(TOKEN_KEY);
       return null;
     }
   }
 }
-

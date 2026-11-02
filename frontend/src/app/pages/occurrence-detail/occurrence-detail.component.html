@@ -28,7 +28,7 @@
         <div class="card-title">
           <div><h2>Informações do registro</h2><span>Criado em {{ formatDateTime(item.createdAt) }}</span></div>
           @if (canEditOccurrence && !editMode) {
-            <button class="edit-button" type="button" (click)="editMode = true">Editar dados</button>
+            <button class="edit-button" type="button" (click)="startEdit()">Editar dados</button>
           }
         </div>
 
@@ -39,8 +39,36 @@
             <div><label for="editCategory">Categoria</label><select id="editCategory" name="editCategory" required [(ngModel)]="editModel.categoryId">@for (category of categories; track category.id) { <option [ngValue]="category.id">{{ category.name }}</option> }</select></div>
             <div><label for="editLocation">Local</label><select id="editLocation" name="editLocation" required [(ngModel)]="editModel.locationId">@for (location of locations; track location.id) { <option [ngValue]="location.id">{{ location.name }}</option> }</select></div>
             <div><label for="editPriority">Prioridade</label><select id="editPriority" name="editPriority" required [(ngModel)]="editModel.priority"><option value="BAIXA">Baixa</option><option value="MEDIA">Média</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></div>
+
+            <div class="edit-students-box">
+              <label>Alunos envolvidos ({{ editSelectedStudents.length }} selecionado(s))</label>
+              @if (editSelectedStudents.length) {
+                <div class="edit-chips">
+                  @for (s of editSelectedStudents; track s.id) {
+                    <span class="student-chip">
+                      <strong>{{ s.name }}</strong>
+                      <small>({{ s.className }})</small>
+                      <button type="button" (click)="removeEditStudent(s.id)" [attr.aria-label]="'Remover ' + s.name">✕</button>
+                    </span>
+                  }
+                </div>
+              }
+              <div class="edit-student-search">
+                <input name="editStudentSearch" [(ngModel)]="editStudentSearch" (keyup.enter)="searchEditStudents()" placeholder="Pesquisar aluno para adicionar...">
+                <button type="button" class="button button-secondary" (click)="searchEditStudents()">Buscar</button>
+              </div>
+              <div class="edit-student-list">
+                @for (st of availableStudents.slice(0, 30); track st.id) {
+                  <label class="edit-student-item">
+                    <input type="checkbox" [checked]="isEditStudentSelected(st.id)" (change)="toggleEditStudent(st, $any($event.target).checked)">
+                    <span><strong>{{ st.name }}</strong> <small>({{ st.registration }} · {{ st.className }})</small></span>
+                  </label>
+                }
+              </div>
+            </div>
+
             <div class="edit-description"><label for="editDescription">Descrição</label><textarea id="editDescription" name="editDescription" rows="5" required minlength="15" maxlength="2000" [(ngModel)]="editModel.description"></textarea></div>
-            <div class="edit-actions"><button class="button button-secondary" type="button" (click)="editMode = false">Cancelar</button><button class="button button-primary" type="submit" [disabled]="editForm.invalid || saving">{{ saving ? 'Salvando…' : 'Salvar dados' }}</button></div>
+            <div class="edit-actions"><button class="button button-secondary" type="button" (click)="editMode = false">Cancelar</button><button class="button button-primary" type="submit" [disabled]="editForm.invalid || !editSelectedStudents.length || saving">{{ saving ? 'Salvando…' : 'Salvar dados' }}</button></div>
           </form>
         } @else {
           <dl class="info-grid">
@@ -81,11 +109,16 @@
           @for (student of item.students; track student.id) {
             <div class="involved-student">
               <span>{{ student.name.charAt(0) }}</span>
-              <div>
+              <div class="involved-student-info">
                 <strong>{{ student.name }}</strong>
                 <small>{{ student.registration }} · {{ student.className }}</small>
                 @if (student.guardianName) {
                   <small class="student-guardian">Resp: {{ student.guardianName }} ({{ student.guardianPhone || 'S/ telefone' }})</small>
+                }
+                @if (auth.hasRole('ADMINISTRADOR', 'PROFESSOR') && getWhatsAppLink(student); as waLink) {
+                  <a class="whatsapp-btn" [href]="waLink" target="_blank" rel="noopener noreferrer" title="Enviar notificação pelo WhatsApp ao responsável">
+                    💬 Notificar Responsável
+                  </a>
                 }
               </div>
             </div>

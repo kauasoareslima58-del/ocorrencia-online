@@ -1,10 +1,55 @@
-<section class="page-heading"><div><span class="eyebrow">Segurança e rastreabilidade</span><h1>Registro de alterações</h1><p>Histórico das ações realizadas pelos usuários do sistema.</p></div></section>
+<section class="page-heading">
+  <div><span class="eyebrow">Segurança e rastreabilidade</span><h1>Registro de alterações</h1><p>Histórico das ações realizadas pelos usuários do sistema.</p></div>
+</section>
+
+<section class="filter-card">
+  <form (ngSubmit)="load()">
+    <div class="field field-search">
+      <label for="auditSearch">Usuário ou detalhes</label>
+      <input id="auditSearch" name="auditSearch" [(ngModel)]="filters.search" placeholder="Nome do servidor, protocolo ou matrícula">
+    </div>
+    <div class="field">
+      <label for="auditAction">Ação</label>
+      <select id="auditAction" name="auditAction" [(ngModel)]="filters.action">
+        <option value="">Todas</option>
+        <option value="LOGIN">Login</option>
+        <option value="CREATE">Criação</option>
+        <option value="UPDATE">Atualização</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="auditEntity">Módulo</label>
+      <select id="auditEntity" name="auditEntity" [(ngModel)]="filters.entity">
+        <option value="">Todos</option>
+        <option value="OCCURRENCE">Ocorrências</option>
+        <option value="STUDENT">Alunos</option>
+        <option value="TEACHER">Professores</option>
+        <option value="CATEGORY">Categorias</option>
+        <option value="LOCATION">Locais</option>
+        <option value="AUTH">Autenticação</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="auditStart">Data inicial</label>
+      <input id="auditStart" name="auditStart" type="date" [(ngModel)]="filters.startDate">
+    </div>
+    <div class="field">
+      <label for="auditEnd">Data final</label>
+      <input id="auditEnd" name="auditEnd" type="date" [(ngModel)]="filters.endDate">
+    </div>
+    <div class="filter-actions">
+      <button type="submit" class="button button-primary">Filtrar</button>
+      <button type="button" class="button button-secondary" (click)="clearFilters()">Limpar</button>
+    </div>
+  </form>
+</section>
+
 <section class="audit-card">
-  <div class="audit-notice"><span>i</span><p>Os registros de auditoria são somente para consulta e não podem ser alterados pelo sistema.</p></div>
+  <div class="audit-notice"><span>i</span><p>Os registros de auditoria são somente para consulta e não podem ser alterados pelo sistema ({{ logs.length }} registro(s) listado(s)).</p></div>
   @if (loading) { <div class="empty-state">Carregando registros…</div> }
   @else if (logs.length) {
     <div class="table-wrap"><table><thead><tr><th>Data e hora</th><th>Usuário</th><th>Ação</th><th>Entidade</th><th>Detalhes</th></tr></thead><tbody>
-      @for (log of logs; track log.id) { <tr><td>{{ formatDateTime(log.createdAt) }}</td><td><strong>{{ log.userName }}</strong><small>{{ roleLabel(log.userRole) }}</small></td><td><span class="action-badge">{{ actionLabel(log.action, log.entity) }}</span></td><td>{{ log.entity }} @if (log.entityId) { <small>#{{ log.entityId }}</small> }</td><td class="details">{{ log.details || '—' }}</td></tr> }
+      @for (log of logs; track log.id) { <tr><td>{{ formatDateTime(log.createdAt) }}</td><td><strong>{{ log.userName }}</strong><small>{{ roleLabel(log.userRole) }}</small></td><td><span class="action-badge">{{ actionLabel(log.action, log.entity) }}</span></td><td>{{ log.entity }} @if (log.entityId) { <small>#{{ log.entityId }}</small> }</td><td class="details">{{ formatDetails(log.details) }}</td></tr> }
     </tbody></table></div>
-  } @else { <div class="empty-state">Nenhuma atividade registrada.</div> }
+  } @else { <div class="empty-state">Nenhuma atividade encontrada para os filtros selecionados.</div> }
 </section>

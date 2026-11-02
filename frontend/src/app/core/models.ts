@@ -1,4 +1,4 @@
-export type UserRole = 'ADMINISTRADOR' | 'PROFESSOR' | 'ALUNO';
+export type UserRole = 'ADMINISTRADOR' | 'PROFESSOR';
 export type OccurrenceStatus = 'PENDENTE' | 'EM_ANALISE' | 'EM_ACOMPANHAMENTO' | 'ENCERRADA';
 export type Priority = 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE';
 
@@ -29,6 +29,7 @@ export interface Student {
 export interface NamedItem {
   id: number;
   name: string;
+  active?: boolean | number;
 }
 
 export interface Occurrence {
@@ -79,6 +80,7 @@ export interface BatchImportResponse {
 export interface DashboardStats {
   totals: { all: number; pending: number; analysis: number; monitoring: number; closed: number };
   byCategory: Array<{ name: string; total: number }>;
+  byClass?: Array<{ name: string; total: number }>;
   recent: Occurrence[];
 }
 
@@ -100,4 +102,24 @@ export interface Teacher {
   active: boolean | number;
   occurrenceCount: number;
   createdAt: string;
+}
+
+export interface AppNotification {
+  key: string;
+  type: 'NEW_OCCURRENCE' | 'PROFESSOR_UPDATE' | 'ADMIN_UPDATE';
+  occurrenceId: number;
+  protocol: string;
+  title: string;
+  message: string;
+  priority: Priority;
+  status: OccurrenceStatus;
+  authorName: string;
+  createdAt: string;
+  read: boolean;
+}
+
+export interface NotificationsResponse {
+  items: AppNotification[];
+  unreadCount: number;
+  pendingCount: number;
 }

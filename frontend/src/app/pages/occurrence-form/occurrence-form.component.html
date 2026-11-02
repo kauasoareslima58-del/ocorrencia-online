@@ -15,10 +15,21 @@
         <input name="studentSearch" [(ngModel)]="studentSearch" (keyup.enter)="loadStudents()" placeholder="Nome ou matrícula">
         <button type="button" class="button button-secondary" (click)="loadStudents()">Pesquisar</button>
       </div>
+      @if (selectedStudents.length) {
+        <div class="selected-chips">
+          @for (selected of selectedStudents; track selected.id) {
+            <span class="student-chip">
+              <strong>{{ selected.name }}</strong>
+              <small>({{ selected.className }})</small>
+              <button type="button" (click)="removeStudent(selected.id)" [attr.aria-label]="'Remover ' + selected.name">✕</button>
+            </span>
+          }
+        </div>
+      }
       <div class="student-list">
         @for (student of students; track student.id) {
           <label class="student-option" [class.selected]="isSelected(student.id)">
-            <input type="checkbox" [checked]="isSelected(student.id)" (change)="toggleStudent(student.id, $any($event.target).checked)">
+            <input type="checkbox" [checked]="isSelected(student.id)" (change)="toggleStudent(student, $any($event.target).checked)">
             <span class="student-avatar">{{ student.name.charAt(0) }}</span>
             <span><strong>{{ student.name }}</strong><small>{{ student.registration }} · {{ student.className }}</small></span>
           </label>

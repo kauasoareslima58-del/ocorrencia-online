@@ -16,11 +16,11 @@
       <div class="heading">
         <span>Ocorrência Online</span>
         <h2>Bem-vindo ao sistema</h2>
-        <p>Entre com suas credenciais institucionais.</p>
+        <p>Acesso exclusivo para Equipe Gestora e Professores.</p>
       </div>
 
       <form (ngSubmit)="submit()" #loginForm="ngForm">
-        <label for="email">E-mail</label>
+        <label for="email">E-mail institucional</label>
         <input id="email" name="email" type="email" autocomplete="username" required [(ngModel)]="email" placeholder="nome@monsenhor.edu.br">
 
         <label for="password">Senha</label>
@@ -41,11 +41,10 @@
         <div class="demo-buttons">
           <button type="button" class="demo-pill" (click)="useDemo('professor')">Professor</button>
           <button type="button" class="demo-pill" (click)="useDemo('admin')">Administrador</button>
-          <button type="button" class="demo-pill" (click)="useDemo('aluno')">Aluno</button>
         </div>
         <small>Ambiente com dados de teste. Altere as senhas antes de usar em produção.</small>
       </div>
-      <p class="privacy">Acesso restrito. As atividades realizadas no sistema são registradas.</p>
+      <p class="privacy">Acesso restrito a servidores autorizados. As atividades realizadas no sistema são registradas.</p>
     </div>
   </section>
 </main>

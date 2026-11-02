@@ -15,11 +15,13 @@
 .message.error { color: #9e2020; border: 1px solid #f1cccc; background: #fff0f0; }
 .message.success { color: #176446; border: 1px solid #bee5d4; background: #ecf9f4; }
 .card-heading { min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.security-note { color: #49657c; font-size: .76rem; }
+.heading-search { width: min(320px, 100%); }
 .access-status { display: inline-flex; padding: .34rem .6rem; border-radius: 999px; color: #176849; background: #e5f6ee; font-size: .72rem; font-weight: 850; }
 .access-status.inactive { color: #7c4e4e; background: #f3eaea; }
 
 .actions-cell { display: flex; gap: .4rem; align-items: center; }
+.edit-button { min-height: 34px; padding: .4rem .65rem; border: 1px solid #cbd5e1; border-radius: 7px; color: var(--navy); background: #f8fafc; font-size: .74rem; font-weight: 800; cursor: pointer; transition: background .15s; }
+.edit-button:hover { background: #e2e8f0; }
 .status-button { min-height: 34px; padding: .4rem .65rem; border: 1px solid #dfc8c8; border-radius: 7px; color: #8b3333; background: white; font-size: .74rem; font-weight: 800; cursor: pointer; transition: background .15s; }
 .status-button.activate { color: #176849; border-color: #bedfce; }
 .status-button:hover { background: #fdf2f2; }
@@ -50,6 +52,6 @@
   .field:last-of-type, .form-actions { grid-column: auto; }
   .form-actions { flex-direction: column-reverse; }
   .form-actions .button { width: 100%; }
-  .security-note { display: none; }
+  .card-heading { flex-direction: column; align-items: stretch; }
   .actions-cell { flex-direction: column; }
 }

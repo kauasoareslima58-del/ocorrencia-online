@@ -4,7 +4,7 @@ import { isValidClass } from '../config/classes.js';
 import { allowRoles } from '../middleware/auth.js';
 import { httpError } from '../middleware/error-handler.js';
 import { writeAudit } from '../utils/audit.js';
-import { attachStudents, occurrenceSelect } from '../utils/occurrence-queries.js';
+import { attachStudents, occurrenceSelect, roleScope } from '../utils/occurrence-queries.js';
 
 export const studentsRouter = Router();
 studentsRouter.use(allowRoles('PROFESSOR', 'ADMINISTRADOR'));
@@ -33,17 +33,23 @@ studentsRouter.get('/', async (req, res) => {
   }
 
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const isProfessor = req.user.role === 'PROFESSOR';
+  const countJoin = isProfessor
+    ? 'LEFT JOIN occurrence_students os ON os.student_id = s.id LEFT JOIN occurrences o ON o.id = os.occurrence_id AND o.created_by = ?'
+    : 'LEFT JOIN occurrence_students os ON os.student_id = s.id';
+  const countExpr = isProfessor ? 'COUNT(o.id)' : 'COUNT(os.occurrence_id)';
+  const queryParams = isProfessor ? [req.user.id, ...params] : params;
 
   const [rows] = await pool.execute(
     `SELECT s.id, s.registration, s.name, s.class_name AS className,
             s.guardian_name AS guardianName, s.guardian_phone AS guardianPhone,
             s.active,
-            COUNT(os.occurrence_id) AS occurrenceCount
+            ${countExpr} AS occurrenceCount
      FROM students s
-     LEFT JOIN occurrence_students os ON os.student_id = s.id
+     ${countJoin}
      ${whereClause}
      GROUP BY s.id ORDER BY s.name LIMIT 500`,
-    params
+    queryParams
   );
   res.json(rows);
 });
@@ -253,20 +259,22 @@ studentsRouter.post('/batch', allowRoles('ADMINISTRADOR'), async (req, res) => {
 
 studentsRouter.get('/:id/history', async (req, res) => {
   const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: 'Identificador inválido.' });
   const [[student]] = await pool.execute(
     `SELECT id, registration, name, class_name AS className, guardian_name AS guardianName,
             guardian_phone AS guardianPhone, active FROM students WHERE id = ?`,
     [id]
   );
   if (!student) return res.status(404).json({ message: 'Aluno não encontrado.' });
+  const scope = roleScope(req.user);
   const [rows] = await pool.execute(
     `${occurrenceSelect}
      INNER JOIN occurrence_students selected_os ON selected_os.occurrence_id = o.id
-     WHERE selected_os.student_id = ?
+     WHERE selected_os.student_id = ? AND ${scope.sql}
      ORDER BY o.occurrence_date DESC, o.occurrence_time DESC, o.id DESC`,
-    [id]
+    [id, ...scope.params]
   );
-  const occurrences = await attachStudents(rows);
+  const occurrences = await attachStudents(rows, pool, req.user);
   res.json({ student, occurrences });
 });
 

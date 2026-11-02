@@ -4,7 +4,10 @@ import { env } from './config/env.js';
 
 try {
   await checkDatabase();
-  const server = app.listen(env.port, () => console.log(`API disponível em http://localhost:${env.port}`));
+  const server = app.listen(env.port, () => {
+    console.log(`API disponível em http://localhost:${env.port} (redireciona para ${env.frontendUrl})`);
+    console.log(`Acesse o sistema no navegador em: ${env.frontendUrl}`);
+  });
   const shutdown = () => server.close(async () => { await pool.end(); process.exit(0); });
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);

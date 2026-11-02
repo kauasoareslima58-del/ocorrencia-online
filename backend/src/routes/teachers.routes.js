@@ -62,6 +62,56 @@ teachersRouter.post('/', async (req, res) => {
   }
 });
 
+teachersRouter.patch('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) throw httpError(400, 'Identificador inválido.');
+
+  const name = cleanText(req.body?.name, 120);
+  const email = String(req.body?.email ?? '').trim().toLowerCase();
+  if (name.length < 3) throw httpError(400, 'Informe o nome completo do professor.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 180) throw httpError(400, 'Informe um e-mail válido.');
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [[teacher]] = await connection.execute(
+      `SELECT id, email FROM users WHERE id = ? AND role = 'PROFESSOR' FOR UPDATE`,
+      [id]
+    );
+    if (!teacher) throw httpError(404, 'Professor não encontrado.');
+
+    if (email !== teacher.email) {
+      const [[exists]] = await connection.execute('SELECT id FROM users WHERE email = ? AND id != ?', [email, id]);
+      if (exists) throw httpError(409, 'Já existe outro usuário cadastrado com este e-mail.');
+    }
+
+    await connection.execute('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, id]);
+    await writeAudit(connection, {
+      userId: req.user.id,
+      action: 'UPDATE',
+      entity: 'TEACHER',
+      entityId: id,
+      details: { name, email }
+    });
+    await connection.commit();
+
+    const [[updated]] = await pool.execute(
+      `SELECT u.id, u.name, u.email, u.active, u.created_at AS createdAt,
+              COUNT(o.id) AS occurrenceCount
+       FROM users u
+       LEFT JOIN occurrences o ON o.created_by = u.id
+       WHERE u.id = ? GROUP BY u.id`,
+      [id]
+    );
+    res.json(updated);
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+});
+
 teachersRouter.patch('/:id/status', async (req, res) => {
   const id = Number(req.params.id);
   const active = req.body?.active;

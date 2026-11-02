@@ -2,10 +2,12 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import {
+  AppNotification,
   AuditLog,
   BatchImportResponse,
   DashboardStats,
   NamedItem,
+  NotificationsResponse,
   Occurrence,
   PaginatedResponse,
   Student,
@@ -75,12 +77,42 @@ export class ApiService {
     return this.http.get<{ student: Student; occurrences: Occurrence[] }>(`${this.base}/students/${id}/history`);
   }
 
-  getMetadata() {
-    return this.http.get<{ categories: NamedItem[]; locations: NamedItem[]; classes: string[] }>(`${this.base}/metadata`);
+  getMetadata(includeInactive = false) {
+    let params = new HttpParams();
+    if (includeInactive) params = params.set('includeInactive', 'true');
+    return this.http.get<{
+      categories: NamedItem[];
+      locations: NamedItem[];
+      classes: string[];
+      allCategories?: NamedItem[];
+      allLocations?: NamedItem[];
+    }>(`${this.base}/metadata`, { params });
   }
 
-  getAuditLogs() {
-    return this.http.get<AuditLog[]>(`${this.base}/audit`);
+  createCategory(name: string) {
+    return this.http.post<NamedItem>(`${this.base}/metadata/categories`, { name });
+  }
+
+  updateCategoryStatus(id: number, active: boolean) {
+    return this.http.patch<NamedItem>(`${this.base}/metadata/categories/${id}`, { active });
+  }
+
+  createLocation(name: string) {
+    return this.http.post<NamedItem>(`${this.base}/metadata/locations`, { name });
+  }
+
+  updateLocationStatus(id: number, active: boolean) {
+    return this.http.patch<NamedItem>(`${this.base}/metadata/locations/${id}`, { active });
+  }
+
+  getAuditLogs(filters: Record<string, string> = {}) {
+    let params = new HttpParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        params = params.set(key, value);
+      }
+    });
+    return this.http.get<AuditLog[]>(`${this.base}/audit`, { params });
   }
 
   getTeachers() {
@@ -89,6 +121,10 @@ export class ApiService {
 
   createTeacher(payload: object) {
     return this.http.post<Teacher>(`${this.base}/teachers`, payload);
+  }
+
+  updateTeacher(id: number, payload: { name: string; email: string }) {
+    return this.http.patch<Teacher>(`${this.base}/teachers/${id}`, payload);
   }
 
   updateTeacherStatus(id: number, active: boolean) {
@@ -101,6 +137,14 @@ export class ApiService {
 
   changePassword(currentPassword: string, newPassword: string) {
     return this.http.post<{ message: string }>(`${this.base}/auth/change-password`, { currentPassword, newPassword });
+  }
+
+  getNotifications() {
+    return this.http.get<NotificationsResponse>(`${this.base}/notifications`);
+  }
+
+  markNotificationsRead(keys: string[]) {
+    return this.http.post<{ message: string }>(`${this.base}/notifications/read`, { keys });
   }
 }
 

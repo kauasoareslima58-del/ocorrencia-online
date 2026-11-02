@@ -1,13 +1,26 @@
 <section class="page-heading">
-  <div><span class="eyebrow">Consulta</span><h1>{{ auth.hasRole('ALUNO') ? 'Minhas ocorrências' : 'Ocorrências' }}</h1><p>Pesquise e acompanhe os registros autorizados para o seu perfil.</p></div>
-  @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) { <a class="button button-primary" routerLink="/nova-ocorrencia">＋ Nova ocorrência</a> }
+  <div><span class="eyebrow">Consulta</span><h1>Ocorrências</h1><p>Pesquise e acompanhe os registros autorizados para o seu perfil.</p></div>
+  <div class="heading-actions">
+    @if (auth.hasRole('ADMINISTRADOR')) {
+      <button type="button" class="button button-secondary" (click)="openMetadataModal()">⚙️ Categorias e Locais</button>
+    }
+    @if (auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
+      <a class="button button-primary" routerLink="/nova-ocorrencia">＋ Nova ocorrência</a>
+    }
+  </div>
 </section>
 
 <section class="filter-card">
   <form (ngSubmit)="load(true)">
     <div class="field field-search"><label for="search">Aluno, protocolo ou descrição</label><input id="search" name="search" [(ngModel)]="filters.search" placeholder="Digite para pesquisar"></div>
     <div class="field"><label for="status">Status</label><select id="status" name="status" [(ngModel)]="filters.status"><option value="">Todos</option><option value="PENDENTE">Pendente</option><option value="EM_ANALISE">Em análise</option><option value="EM_ACOMPANHAMENTO">Em acompanhamento</option><option value="ENCERRADA">Encerrada</option></select></div>
-    <div class="field"><label for="category">Categoria</label><input id="category" name="category" [(ngModel)]="filters.category" placeholder="Ex.: Comportamento"></div>
+    <div class="field">
+      <label for="category">Categoria</label>
+      <select id="category" name="category" [(ngModel)]="filters.category">
+        <option value="">Todas as categorias</option>
+        @for (cat of categories; track cat.id) { <option [value]="cat.name">{{ cat.name }}</option> }
+      </select>
+    </div>
     <div class="field"><label for="className">Turma</label><select id="className" name="className" [(ngModel)]="filters.className"><option value="">Todas as turmas</option>@for (className of classes; track className) { <option [value]="className">{{ classLabel(className) }}</option> }</select></div>
     <div class="field"><label for="startDate">Data inicial</label><input id="startDate" name="startDate" type="date" [(ngModel)]="filters.startDate"></div>
     <div class="field"><label for="endDate">Data final</label><input id="endDate" name="endDate" type="date" [(ngModel)]="filters.endDate"></div>
@@ -22,6 +35,11 @@
       <h2>Registros encontrados</h2>
       <p>{{ total }} ocorrência(s) no total</p>
     </div>
+    @if (occurrences.length && auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
+      <button type="button" class="button button-secondary" [disabled]="exporting" (click)="exportCsv()">
+        {{ exporting ? 'Exportando…' : '📥 Exportar CSV' }}
+      </button>
+    }
   </div>
 
   @if (loading) { <div class="empty-state">Carregando ocorrências…</div> }
@@ -60,3 +78,55 @@
     }
   } @else { <div class="empty-state"><strong>Nenhum registro encontrado.</strong><span>Altere os filtros e tente novamente.</span></div> }
 </section>
+
+@if (showMetadataModal && auth.hasRole('ADMINISTRADOR')) {
+  <div class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Gerenciar Categorias e Locais</h3>
+        <button type="button" class="close-btn" (click)="closeMetadataModal()">✕</button>
+      </div>
+
+      @if (metaError) { <p class="modal-error">{{ metaError }}</p> }
+      @if (metaSuccess) { <p class="modal-success">{{ metaSuccess }}</p> }
+
+      <div class="meta-columns">
+        <div class="meta-col">
+          <h4>Categorias de Ocorrência</h4>
+          <div class="meta-add">
+            <input [(ngModel)]="newCategoryName" (keyup.enter)="addCategory()" placeholder="Nova categoria...">
+            <button type="button" class="button button-primary" [disabled]="metaSaving || !newCategoryName.trim()" (click)="addCategory()">＋</button>
+          </div>
+          <ul class="meta-list">
+            @for (cat of allCategories; track cat.id) {
+              <li [class.inactive]="cat.active === false || cat.active === 0">
+                <span>{{ cat.name }}</span>
+                <button type="button" class="meta-toggle" (click)="toggleCategory(cat)">
+                  {{ (cat.active === false || cat.active === 0) ? 'Ativar' : 'Inativar' }}
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+
+        <div class="meta-col">
+          <h4>Locais da Escola</h4>
+          <div class="meta-add">
+            <input [(ngModel)]="newLocationName" (keyup.enter)="addLocation()" placeholder="Novo local...">
+            <button type="button" class="button button-primary" [disabled]="metaSaving || !newLocationName.trim()" (click)="addLocation()">＋</button>
+          </div>
+          <ul class="meta-list">
+            @for (loc of allLocations; track loc.id) {
+              <li [class.inactive]="loc.active === false || loc.active === 0">
+                <span>{{ loc.name }}</span>
+                <button type="button" class="meta-toggle" (click)="toggleLocation(loc)">
+                  {{ (loc.active === false || loc.active === 0) ? 'Ativar' : 'Inativar' }}
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+}

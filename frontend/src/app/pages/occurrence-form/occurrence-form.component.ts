@@ -19,6 +19,7 @@ export class OccurrenceFormComponent implements OnInit {
   private readonly router = inject(Router);
   readonly auth = inject(AuthService);
   students: Student[] = [];
+  selectedStudents: Student[] = [];
   categories: NamedItem[] = [];
   locations: NamedItem[] = [];
   classes: string[] = [];
@@ -57,10 +58,20 @@ export class OccurrenceFormComponent implements OnInit {
     this.api.getStudents(this.studentSearch, this.classFilter).subscribe({ next: (items) => this.students = items });
   }
 
-  toggleStudent(id: number, checked: boolean): void {
-    this.selectedStudentIds = checked
-      ? [...new Set([...this.selectedStudentIds, id])]
-      : this.selectedStudentIds.filter((studentId) => studentId !== id);
+  toggleStudent(student: Student, checked: boolean): void {
+    if (checked) {
+      if (!this.selectedStudentIds.includes(student.id)) {
+        this.selectedStudentIds = [...this.selectedStudentIds, student.id];
+        this.selectedStudents = [...this.selectedStudents, student];
+      }
+    } else {
+      this.removeStudent(student.id);
+    }
+  }
+
+  removeStudent(id: number): void {
+    this.selectedStudentIds = this.selectedStudentIds.filter((studentId) => studentId !== id);
+    this.selectedStudents = this.selectedStudents.filter((student) => student.id !== id);
   }
 
   isSelected(id: number): boolean { return this.selectedStudentIds.includes(id); }

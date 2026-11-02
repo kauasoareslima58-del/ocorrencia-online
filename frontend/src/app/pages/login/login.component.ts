@@ -35,16 +35,13 @@ export class LoginComponent {
     });
   }
 
-  useDemo(role: 'admin' | 'professor' | 'aluno'): void {
+  useDemo(role: 'admin' | 'professor'): void {
     if (role === 'admin') {
       this.email = 'admin@monsenhor.edu.br';
       this.password = 'Admin@123';
-    } else if (role === 'professor') {
+    } else {
       this.email = 'professor@monsenhor.edu.br';
       this.password = 'Professor@123';
-    } else {
-      this.email = 'aluno@monsenhor.edu.br';
-      this.password = 'Aluno@123';
     }
   }
 }

@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { BatchImportResponse, Occurrence, Student } from '../../core/models';
-import { classLabel, formatDate, statusLabel } from '../../core/view-helpers';
+import { classLabel, formatDate, priorityLabel, statusLabel } from '../../core/view-helpers';
 
 @Component({
   selector: 'app-students',
@@ -49,11 +49,13 @@ export class StudentsComponent implements OnInit {
   showImportModal = false;
   importing = false;
   importError = '';
+  importErrors: string[] = [];
   importSuccess = '';
   csvData: Array<{ name: string; registration: string; className: string; guardianName?: string; guardianPhone?: string }> = [];
 
   readonly formatDate = formatDate;
   readonly statusLabel = statusLabel;
+  readonly priorityLabel = priorityLabel;
   readonly classLabel = classLabel;
 
   ngOnInit(): void {
@@ -109,7 +111,6 @@ export class StudentsComponent implements OnInit {
     this.showEditModal = true;
     this.editError = '';
 
-    // Split className e.g. "6º Ano A" -> grade "6º Ano", section "A"
     const parts = student.className.trim().split(' ');
     const section = parts.pop() || 'A';
     const gradeLevel = parts.join(' ') || '6º Ano';
@@ -191,10 +192,16 @@ export class StudentsComponent implements OnInit {
     });
   }
 
+  printStudentHistory(): void {
+    if (!this.selectedStudent) return;
+    window.print();
+  }
+
   // Import CSV methods
   openImportModal(): void {
     this.showImportModal = true;
     this.importError = '';
+    this.importErrors = [];
     this.importSuccess = '';
     this.csvData = [];
   }
@@ -217,13 +224,13 @@ export class StudentsComponent implements OnInit {
 
   parseCsv(text: string): void {
     this.importError = '';
+    this.importErrors = [];
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
     if (!lines.length) {
       this.importError = 'Arquivo CSV vazio.';
       return;
     }
 
-    // Determine if first row is header
     const firstLine = lines[0].toLowerCase();
     const startIndex = (firstLine.includes('nome') || firstLine.includes('matr') || firstLine.includes('turma')) ? 1 : 0;
 
@@ -231,7 +238,6 @@ export class StudentsComponent implements OnInit {
 
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i];
-      // Split by semicolon or comma
       const delimiter = line.includes(';') ? ';' : ',';
       const cols = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
       if (cols.length >= 3) {
@@ -257,12 +263,14 @@ export class StudentsComponent implements OnInit {
     if (this.importing || !this.csvData.length) return;
     this.importing = true;
     this.importError = '';
+    this.importErrors = [];
     this.importSuccess = '';
 
     this.api.batchCreateStudents(this.csvData).subscribe({
       next: (res: BatchImportResponse) => {
         this.importing = false;
         this.importSuccess = res.message;
+        this.importErrors = res.errors ?? [];
         this.csvData = [];
         this.loadClasses();
         this.loadStudents();

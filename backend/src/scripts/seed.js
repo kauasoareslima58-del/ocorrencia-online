@@ -15,7 +15,7 @@ async function upsertUser(name, email, password, role) {
 try {
   const adminId = await upsertUser('Marina Oliveira', 'admin@monsenhor.edu.br', 'Admin@123', 'ADMINISTRADOR');
   const professorId = await upsertUser('Carlos Henrique', 'professor@monsenhor.edu.br', 'Professor@123', 'PROFESSOR');
-  const studentUserId = await upsertUser('Lucas Almeida', 'aluno@monsenhor.edu.br', 'Aluno@123', 'ALUNO');
+  await pool.execute(`UPDATE users SET active = FALSE WHERE role = 'ALUNO'`);
 
   const categories = ['Comportamento', 'Conflito / Bullying', 'Frequência / Atraso', 'Saúde', 'Material escolar', 'Infraestrutura', 'Outro'];
   const locations = ['Sala de aula', 'Pátio', 'Quadra esportiva', 'Corredor', 'Biblioteca', 'Refeitório', 'Entrada / Saída', 'Outro'];
@@ -23,7 +23,7 @@ try {
   for (const name of locations) await pool.execute('INSERT IGNORE INTO locations (name) VALUES (?)', [name]);
 
   const students = [
-    [studentUserId, '20260001', 'Lucas Almeida', '2ª Série A', 'Patrícia Almeida', '(14) 99999-1001'],
+    [null, '20260001', 'Lucas Almeida', '2ª Série A', 'Patrícia Almeida', '(14) 99999-1001'],
     [null, '20260002', 'Ana Beatriz Souza', '2ª Série A', 'Roberto Souza', '(14) 99999-1002'],
     [null, '20260003', 'Gabriel Martins', '1ª Série B', 'Renata Martins', '(14) 99999-1003'],
     [null, '20260004', 'Sofia Ferreira', '3ª Série A', 'Paulo Ferreira', '(14) 99999-1004'],
@@ -33,7 +33,7 @@ try {
     await pool.execute(
       `INSERT INTO students (user_id, registration, name, class_name, guardian_name, guardian_phone)
        VALUES (?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), name = VALUES(name), class_name = VALUES(class_name), guardian_name = VALUES(guardian_name), guardian_phone = VALUES(guardian_phone), active = TRUE`,
+       ON DUPLICATE KEY UPDATE user_id = NULL, name = VALUES(name), class_name = VALUES(class_name), guardian_name = VALUES(guardian_name), guardian_phone = VALUES(guardian_phone), active = TRUE`,
       row
     );
   }

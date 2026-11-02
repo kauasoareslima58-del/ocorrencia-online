@@ -15,6 +15,7 @@ import { formatDate } from '../../core/view-helpers';
 export class TeachersComponent implements OnInit {
   private readonly api = inject(ApiService);
   teachers: Teacher[] = [];
+  search = '';
   loading = true;
   saving = false;
   showForm = false;
@@ -22,6 +23,12 @@ export class TeachersComponent implements OnInit {
   error = '';
   success = '';
   teacherForm = { name: '', email: '', password: '' };
+
+  // Edit teacher modal
+  showEditModal = false;
+  editSaving = false;
+  editError = '';
+  editTeacherForm = { id: 0, name: '', email: '' };
 
   // Reset password
   showResetModal = false;
@@ -31,6 +38,14 @@ export class TeachersComponent implements OnInit {
   resetError = '';
 
   readonly formatDate = formatDate;
+
+  get filteredTeachers(): Teacher[] {
+    const q = this.search.trim().toLowerCase();
+    if (!q) return this.teachers;
+    return this.teachers.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q)
+    );
+  }
 
   ngOnInit(): void { this.loadTeachers(); }
 
@@ -59,6 +74,37 @@ export class TeachersComponent implements OnInit {
       error: (error: HttpErrorResponse) => {
         this.error = typeof error.error?.message === 'string' ? error.error.message : 'Não foi possível criar o login.';
         this.saving = false;
+      }
+    });
+  }
+
+  openEditModal(teacher: Teacher): void {
+    this.editTeacherForm = { id: teacher.id, name: teacher.name, email: teacher.email };
+    this.editError = '';
+    this.showEditModal = true;
+  }
+
+  closeEditModal(): void {
+    this.showEditModal = false;
+  }
+
+  submitEditTeacher(): void {
+    if (this.editSaving) return;
+    this.editSaving = true;
+    this.editError = '';
+    this.api.updateTeacher(this.editTeacherForm.id, {
+      name: this.editTeacherForm.name,
+      email: this.editTeacherForm.email
+    }).subscribe({
+      next: (updated) => {
+        this.editSaving = false;
+        this.showEditModal = false;
+        this.success = `Dados do professor ${updated.name} atualizados com sucesso.`;
+        this.loadTeachers();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.editSaving = false;
+        this.editError = typeof err.error?.message === 'string' ? err.error.message : 'Não foi possível atualizar os dados do professor.';
       }
     });
   }

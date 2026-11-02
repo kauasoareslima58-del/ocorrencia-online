@@ -13,13 +13,10 @@ export const occurrenceSelect = `
 export function roleScope(user, alias = 'o') {
   if (user.role === 'ADMINISTRADOR') return { sql: '1 = 1', params: [] };
   if (user.role === 'PROFESSOR') return { sql: `${alias}.created_by = ?`, params: [user.id] };
-  return {
-    sql: `EXISTS (SELECT 1 FROM occurrence_students scope_os WHERE scope_os.occurrence_id = ${alias}.id AND scope_os.student_id = ?)`,
-    params: [user.studentId ?? 0]
-  };
+  return { sql: '1 = 0', params: [] };
 }
 
-export async function attachStudents(rows, runner = pool, user = null) {
+export async function attachStudents(rows, runner = pool) {
   if (!rows.length) return rows;
   const ids = rows.map((row) => row.id);
   const placeholders = ids.map(() => '?').join(',');
@@ -44,15 +41,7 @@ export async function attachStudents(rows, runner = pool, user = null) {
     });
     grouped.set(student.occurrenceId, list);
   }
-  return rows.map((row) => {
-    let visibleStudents = grouped.get(row.id) ?? [];
-    if (user?.role === 'ALUNO') {
-      visibleStudents = visibleStudents
-        .filter((student) => student.id === user.studentId)
-        .map(({ id, registration, name, className }) => ({ id, registration, name, className }));
-    }
-    return { ...row, students: visibleStudents };
-  });
+  return rows.map((row) => ({ ...row, students: grouped.get(row.id) ?? [] }));
 }
 
 export async function getOccurrenceById(id, user, runner = pool) {
@@ -60,7 +49,7 @@ export async function getOccurrenceById(id, user, runner = pool) {
   const [rows] = await runner.execute(`${occurrenceSelect} WHERE o.id = ? AND ${scope.sql}`, [id, ...scope.params]);
   if (!rows.length) return null;
   const [studentRows, updateResult] = await Promise.all([
-    attachStudents(rows, runner, user),
+    attachStudents(rows, runner),
     runner.execute(
       `SELECT ou.id, ou.observation, ou.action_taken AS actionTaken,
               ou.previous_status AS previousStatus, ou.new_status AS newStatus,

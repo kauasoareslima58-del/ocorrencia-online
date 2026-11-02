@@ -5,7 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { timeout, TimeoutError } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { NamedItem, Occurrence, OccurrenceStatus } from '../../core/models';
+import { NamedItem, Occurrence, OccurrenceStatus, Student } from '../../core/models';
 import { formatDate, formatDateTime, priorityLabel, roleLabel, statusLabel } from '../../core/view-helpers';
 
 @Component({
@@ -27,6 +27,9 @@ export class OccurrenceDetailComponent implements OnInit {
   editMode = false;
   categories: NamedItem[] = [];
   locations: NamedItem[] = [];
+  availableStudents: Student[] = [];
+  editStudentSearch = '';
+  editSelectedStudents: Student[] = [];
   editModel = { occurrenceDate: '', occurrenceTime: '', categoryId: 0, locationId: 0, priority: 'MEDIA', description: '' };
   updateModel: { newStatus: OccurrenceStatus; observation: string; actionTaken: string } = {
     newStatus: 'EM_ANALISE', observation: '', actionTaken: ''
@@ -65,6 +68,7 @@ export class OccurrenceDetailComponent implements OnInit {
       next: (item) => {
         this.occurrence = item;
         this.updateModel.newStatus = item.status;
+        this.editSelectedStudents = [...item.students];
         this.editModel = {
           occurrenceDate: item.occurrenceDate.slice(0, 10), occurrenceTime: item.occurrenceTime.slice(0, 5),
           categoryId: item.categoryId ?? 0, locationId: item.locationId ?? 0,
@@ -90,14 +94,55 @@ export class OccurrenceDetailComponent implements OnInit {
     });
   }
 
+  startEdit(): void {
+    if (!this.occurrence) return;
+    this.editMode = true;
+    this.editSelectedStudents = [...this.occurrence.students];
+    this.editStudentSearch = '';
+    this.searchEditStudents();
+  }
+
+  searchEditStudents(): void {
+    this.api.getStudents(this.editStudentSearch).subscribe({
+      next: (students) => { this.availableStudents = students; }
+    });
+  }
+
+  isEditStudentSelected(id: number): boolean {
+    return this.editSelectedStudents.some((s) => s.id === id);
+  }
+
+  toggleEditStudent(student: Student, checked: boolean): void {
+    if (checked) {
+      if (!this.isEditStudentSelected(student.id)) {
+        this.editSelectedStudents = [...this.editSelectedStudents, student];
+      }
+    } else {
+      this.removeEditStudent(student.id);
+    }
+  }
+
+  removeEditStudent(id: number): void {
+    this.editSelectedStudents = this.editSelectedStudents.filter((s) => s.id !== id);
+  }
+
   saveDetails(): void {
     if (!this.occurrence || this.saving) return;
+    if (!this.editSelectedStudents.length) {
+      this.error = 'A ocorrência deve ter pelo menos um aluno envolvido.';
+      return;
+    }
     this.saving = true;
     this.error = '';
     this.success = '';
-    this.api.updateOccurrence(this.occurrence.id, this.editModel).subscribe({
+    const payload = {
+      ...this.editModel,
+      studentIds: this.editSelectedStudents.map((s) => s.id)
+    };
+    this.api.updateOccurrence(this.occurrence.id, payload).subscribe({
       next: (item) => {
         this.occurrence = item;
+        this.editSelectedStudents = [...item.students];
         this.editMode = false;
         this.saving = false;
         this.success = 'Dados da ocorrência atualizados.';
@@ -131,6 +176,25 @@ export class OccurrenceDetailComponent implements OnInit {
         this.saving = false;
       }
     });
+  }
+
+  getWhatsAppLink(student: Student): string | null {
+    if (!this.occurrence || !student.guardianPhone) return null;
+    const digits = student.guardianPhone.replace(/\D/g, '');
+    if (digits.length < 10) return null;
+    const phone = digits.startsWith('55') ? digits : `55${digits}`;
+    const greeting = student.guardianName ? `Olá, ${student.guardianName}.` : 'Olá, responsável.';
+    const dateStr = this.formatDate(this.occurrence.occurrenceDate);
+    const timeStr = this.occurrence.occurrenceTime.slice(0, 5);
+    const message = [
+      `${greeting} Aqui é da coordenação da *E.E. Monsenhor Bicudo*.`,
+      `Entramos em contato para informar o registro da ocorrência escolar protocolo *${this.occurrence.protocol}* referente ao(à) aluno(a) *${student.name}* (${student.className}).`,
+      `• *Data/Horário:* ${dateStr} às ${timeStr}`,
+      `• *Categoria:* ${this.occurrence.categoryName}`,
+      `• *Status:* ${this.statusLabel(this.occurrence.status)}`,
+      `Solicitamos sua atenção para acompanhamento junto à escola.`
+    ].join('\n');
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
   }
 
   printOfficialSheet(): void {

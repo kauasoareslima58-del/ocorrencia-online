@@ -7,6 +7,11 @@
 .section-heading p { margin: .2rem 0 0; color: var(--muted); font-size: .78rem; }
 .student-search { display: flex; gap: .5rem; padding: 1rem; border-bottom: 1px solid var(--border); }
 .student-search select { width: 170px; }.student-search input { min-width: 0; flex: 1; }
+.selected-chips { display: flex; flex-wrap: wrap; gap: .4rem; padding: .65rem .85rem; border-bottom: 1px solid var(--border); background: #f4f9fd; }
+.student-chip { display: inline-flex; align-items: center; gap: .35rem; padding: .28rem .55rem; border: 1px solid #b7d0e7; border-radius: 999px; background: white; font-size: .75rem; color: var(--navy); }
+.student-chip small { color: var(--muted); font-size: .7rem; }
+.student-chip button { border: 0; background: none; color: #64748b; font-size: .75rem; cursor: pointer; padding: 0 .15rem; line-height: 1; }
+.student-chip button:hover { color: #b91c1c; }
 .student-list { max-height: 430px; overflow: auto; padding: .6rem; }
 .student-option { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: .7rem; padding: .7rem; border: 1px solid transparent; border-radius: 9px; cursor: pointer; }
 .student-option:hover { background: #f6f9fc; }

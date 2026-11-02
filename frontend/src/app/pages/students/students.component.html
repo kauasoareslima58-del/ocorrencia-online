@@ -1,4 +1,4 @@
-<section class="page-heading">
+<section class="page-heading no-print">
   <div><span class="eyebrow">Do 6º Ano à 3ª Série</span><h1>Alunos e turmas</h1><p>Cadastre alunos, gerencie turmas e consulte o histórico escolar.</p></div>
   @if (auth.hasRole('ADMINISTRADOR')) {
     <div class="heading-actions">
@@ -9,7 +9,7 @@
 </section>
 
 @if (showForm && auth.hasRole('ADMINISTRADOR')) {
-  <section class="register-card">
+  <section class="register-card no-print">
     <div class="register-heading"><div><h2>Novo aluno</h2><p>Informe a série e a turma em que o aluno está matriculado.</p></div></div>
     <form (ngSubmit)="submitStudent()" #studentRegistrationForm="ngForm">
       <div class="field field-name"><label for="studentName">Nome completo</label><input id="studentName" name="studentName" required minlength="3" maxlength="120" [(ngModel)]="studentForm.name" placeholder="Nome do aluno"></div>
@@ -24,9 +24,9 @@
   </section>
 }
 
-@if (success) { <div class="success-message" role="status">{{ success }}</div> }
+@if (success) { <div class="success-message no-print" role="status">{{ success }}</div> }
 
-<section class="filter-card">
+<section class="filter-card no-print">
   <div class="field search-field"><label for="studentSearch">Pesquisar aluno</label><input id="studentSearch" [(ngModel)]="search" (keyup.enter)="loadStudents()" placeholder="Nome ou matrícula"></div>
   <div class="field"><label for="classFilter">Filtrar por turma</label><select id="classFilter" [(ngModel)]="selectedClass" (change)="loadStudents()"><option value="">Todas as turmas</option>@for (className of classes; track className) { <option [value]="className">{{ classLabel(className) }}</option> }</select></div>
   <div class="checkbox-field">
@@ -35,7 +35,7 @@
   <button class="button button-primary" type="button" (click)="loadStudents()">Pesquisar</button>
 </section>
 
-<div class="students-layout">
+<div class="students-layout no-print">
   <section class="content-card students-panel">
     <div class="list-heading"><strong>{{ selectedClass ? classLabel(selectedClass) : 'Todos os alunos' }}</strong><span>{{ students.length }} aluno(s)</span></div>
     <div class="students-list">
@@ -80,7 +80,12 @@
             <small class="guardian-meta">Responsável: {{ selectedStudent.guardianName }} {{ selectedStudent.guardianPhone ? '· ' + selectedStudent.guardianPhone : '' }}</small>
           }
         </div>
-        <strong>{{ history.length }} registro(s)</strong>
+        <div class="header-right">
+          <strong>{{ history.length }} registro(s)</strong>
+          <button type="button" class="button button-secondary print-history-btn" (click)="printStudentHistory()" title="Imprimir ficha disciplinar do aluno">
+            🖨️ Imprimir Histórico
+          </button>
+        </div>
       </div>
       @if (historyLoading) { <div class="empty-state">Carregando histórico…</div> }
       @else if (history.length) {
@@ -88,7 +93,7 @@
           @for (item of history; track item.id) {
             <a [routerLink]="['/ocorrencias', item.id]" class="history-row">
               <span class="date-box"><strong>{{ item.occurrenceDate.slice(8, 10) }}</strong><small>{{ item.occurrenceDate.slice(5, 7) }}/{{ item.occurrenceDate.slice(0, 4) }}</small></span>
-              <span><strong>{{ item.categoryName }}</strong><small>{{ item.protocol }} · {{ item.locationName }}</small><p>{{ item.description }}</p></span>
+              <span><strong>{{ item.categoryName }}</strong><small>{{ item.protocol }} · {{ item.locationName }} · Prof. {{ item.professorName }}</small><p>{{ item.description }}</p></span>
               <span class="status-pill status-{{ item.status.toLowerCase() }}">{{ statusLabel(item.status) }}</span>
             </a>
           }
@@ -98,9 +103,79 @@
   </section>
 </div>
 
+<!-- Ficha de Histórico Disciplinar do Aluno (Exibida ao Imprimir) -->
+@if (selectedStudent; as st) {
+  <section class="print-official-sheet">
+    <div class="print-header">
+      <div class="print-emblem">
+        <img src="images/logo-monsenhor-bicudo.png" alt="Logo da Escola">
+      </div>
+      <div class="print-title">
+        <span>GOVERNO DO ESTADO DE SÃO PAULO — SECRETARIA DA EDUCAÇÃO</span>
+        <h2>E.E. MONSENHOR BICUDO</h2>
+        <strong>HISTÓRICO INDIVIDUAL DE OCORRÊNCIAS ESCOLARES</strong>
+      </div>
+    </div>
+
+    <div class="print-meta-grid">
+      <div><strong>Aluno(a):</strong> {{ st.name }}</div>
+      <div><strong>Matrícula (RA):</strong> {{ st.registration }}</div>
+      <div><strong>Série / Turma:</strong> {{ st.className }}</div>
+      <div><strong>Responsável:</strong> {{ st.guardianName || 'Não informado' }}</div>
+      <div><strong>Telefone:</strong> {{ st.guardianPhone || 'Não informado' }}</div>
+      <div><strong>Total de Registros:</strong> {{ history.length }}</div>
+    </div>
+
+    <div class="print-section">
+      <h3>Registros Disciplinares e Pedagógicos</h3>
+      @if (history.length) {
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th>Protocolo</th>
+              <th>Data/Hora</th>
+              <th>Categoria / Local</th>
+              <th>Prioridade</th>
+              <th>Status</th>
+              <th>Registrado por</th>
+              <th>Descrição</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of history; track item.id) {
+              <tr>
+                <td><strong>{{ item.protocol }}</strong></td>
+                <td>{{ formatDate(item.occurrenceDate) }}<br><small>{{ item.occurrenceTime.slice(0, 5) }}</small></td>
+                <td>{{ item.categoryName }}<br><small>{{ item.locationName }}</small></td>
+                <td>{{ priorityLabel(item.priority) }}</td>
+                <td>{{ statusLabel(item.status) }}</td>
+                <td>{{ item.professorName }}</td>
+                <td>{{ item.description }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <p class="no-records">Nenhuma ocorrência registrada para este aluno até a presente data.</p>
+      }
+    </div>
+
+    <div class="print-signatures">
+      <div class="signature-line">
+        <div class="line"></div>
+        <span>Assinatura do Responsável</span>
+      </div>
+      <div class="signature-line">
+        <div class="line"></div>
+        <span>Coordenação Pedagógica / Direção</span>
+      </div>
+    </div>
+  </section>
+}
+
 <!-- Modal de Edição de Aluno -->
 @if (showEditModal) {
-  <div class="modal-backdrop">
+  <div class="modal-backdrop no-print">
     <div class="modal-card">
       <div class="modal-header">
         <h3>Editar Dados do Aluno</h3>
@@ -147,7 +222,7 @@
 
 <!-- Modal de Importação de CSV -->
 @if (showImportModal) {
-  <div class="modal-backdrop">
+  <div class="modal-backdrop no-print">
     <div class="modal-card import-modal">
       <div class="modal-header">
         <h3>Importar Alunos via Planilha (CSV)</h3>
@@ -179,6 +254,17 @@
 
       @if (importError) { <p class="modal-error">{{ importError }}</p> }
       @if (importSuccess) { <p class="modal-success">{{ importSuccess }}</p> }
+      @if (importErrors.length) {
+        <div class="modal-error">
+          <strong>{{ importErrors.length }} linha(s) ignorada(s) por erro:</strong>
+          <ul>
+            @for (errLine of importErrors.slice(0, 8); track errLine) {
+              <li>{{ errLine }}</li>
+            }
+          </ul>
+          @if (importErrors.length > 8) { <small>... e mais {{ importErrors.length - 8 }} erro(s).</small> }
+        </div>
+      }
 
       <div class="modal-actions">
         <button type="button" class="btn-cancel" (click)="closeImportModal()">Fechar</button>

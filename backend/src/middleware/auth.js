@@ -11,16 +11,18 @@ export async function authenticate(req, res, next) {
   try {
     const payload = jwt.verify(authorization.slice(7), env.jwtSecret);
     const userId = Number(payload.sub);
-    const [rows] = await pool.execute('SELECT id, role, active FROM users WHERE id = ? LIMIT 1', [userId]);
+    const [rows] = await pool.execute(
+      `SELECT id, role, active FROM users WHERE id = ? AND role IN ('ADMINISTRADOR', 'PROFESSOR') LIMIT 1`,
+      [userId]
+    );
     const user = rows[0];
     if (!user || !user.active) {
-      return res.status(401).json({ message: 'Usuário inativo ou não encontrado.' });
+      return res.status(401).json({ message: 'Usuário inativo ou não autorizado.' });
     }
 
     req.user = {
       id: userId,
-      role: user.role,
-      studentId: payload.studentId ? Number(payload.studentId) : null
+      role: user.role
     };
     return next();
   } catch {

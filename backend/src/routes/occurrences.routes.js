@@ -147,7 +147,11 @@ occurrencesRouter.patch('/:id', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async 
   const occurrenceTime = String(req.body?.occurrenceTime ?? '');
   const description = String(req.body?.description ?? '').trim();
   const priority = String(req.body?.priority ?? '');
+  const hasStudentIds = Array.isArray(req.body?.studentIds);
+  const studentIds = hasStudentIds ? uniquePositiveIds(req.body.studentIds) : [];
+
   if (!Number.isInteger(id) || !Number.isInteger(categoryId) || !Number.isInteger(locationId)) throw httpError(400, 'Dados inválidos.');
+  if (hasStudentIds && !studentIds.length) throw httpError(400, 'Selecione pelo menos um aluno.');
   if (!isDate(occurrenceDate) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(occurrenceTime)) throw httpError(400, 'Data ou horário inválido.');
   if (description.length < 15 || description.length > 2000) throw httpError(400, 'A descrição deve ter entre 15 e 2000 caracteres.');
   if (!priorities.has(priority)) throw httpError(400, 'Prioridade inválida.');
@@ -173,14 +177,32 @@ occurrencesRouter.patch('/:id', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async 
     }
 
     if (!categoryRows.length || !locationRows.length) throw httpError(400, 'Categoria ou local não está disponível.');
+
+    if (hasStudentIds) {
+      const [studentCountRows] = await connection.execute(
+        `SELECT COUNT(*) AS total FROM students WHERE id IN (${studentIds.map(() => '?').join(',')})`,
+        studentIds
+      );
+      if (studentCountRows[0].total !== studentIds.length) {
+        throw httpError(400, 'Um ou mais alunos selecionados não foram encontrados.');
+      }
+      await connection.execute('DELETE FROM occurrence_students WHERE occurrence_id = ?', [id]);
+      const values = studentIds.map(() => '(?, ?)').join(',');
+      const relationParams = studentIds.flatMap((studentId) => [id, studentId]);
+      await connection.execute(`INSERT INTO occurrence_students (occurrence_id, student_id) VALUES ${values}`, relationParams);
+    }
+
     await connection.execute(
       `UPDATE occurrences SET occurrence_date = ?, occurrence_time = ?, category_id = ?, location_id = ?,
        description = ?, priority = ? WHERE id = ?`,
       [occurrenceDate, occurrenceTime, categoryId, locationId, description, priority, id]
     );
+    const updatedFields = ['occurrenceDate', 'occurrenceTime', 'categoryId', 'locationId', 'description', 'priority'];
+    if (hasStudentIds) updatedFields.push('studentIds');
+
     await writeAudit(connection, {
       userId: req.user.id, action: 'UPDATE', entity: 'OCCURRENCE', entityId: id,
-      details: { protocol: occurrence.protocol, fields: ['occurrenceDate', 'occurrenceTime', 'categoryId', 'locationId', 'description', 'priority'] }
+      details: { protocol: occurrence.protocol, fields: updatedFields, ...(hasStudentIds ? { studentIds } : {}) }
     });
     await connection.commit();
     res.json(await getOccurrenceById(id, req.user));
