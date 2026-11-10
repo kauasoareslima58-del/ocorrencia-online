@@ -14,7 +14,7 @@ export function priorityLabel(priority: Priority): string {
 }
 
 export function roleLabel(role: UserRole): string {
-  return ({ ADMINISTRADOR: 'Administrador', PROFESSOR: 'Professor', ALUNO: 'Aluno' } as const)[role];
+  return ({ ADMINISTRADOR: 'Coordenação', PROFESSOR: 'Professor', ALUNO: 'Aluno' } as const)[role];
 }
 
 export function classLabel(className: string): string {

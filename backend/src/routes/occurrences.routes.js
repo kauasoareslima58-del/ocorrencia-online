@@ -172,7 +172,7 @@ occurrencesRouter.patch('/:id', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async 
         throw httpError(403, 'Você só pode editar ocorrências que você registrou.');
       }
       if (occurrence.status !== 'PENDENTE') {
-        throw httpError(403, 'A ocorrência já está em análise e só pode ser alterada pela administração.');
+        throw httpError(403, 'A ocorrência já está em análise e só pode ser alterada pela coordenação.');
       }
     }
 

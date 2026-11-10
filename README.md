@@ -9,8 +9,8 @@ Sistema full-stack para registro e acompanhamento de ocorrências escolares. O p
   - Validação em tempo real do status ativo do usuário a cada requisição;
   - Recurso de alteração da própria senha para todos os usuários autenticados;
   - Redefinição administrativa de senha de professores pelo painel;
-  - Contas individuais por professor criadas pelo administrador;
-  - Perfis de acesso com escopo rígido: Administrador, Professor e Aluno.
+  - Contas individuais por professor criadas pela coordenação;
+  - Perfis de acesso com escopo rígido: Coordenação, Professor e Aluno.
 - **Gestão de Ocorrências:**
   - Registro de ocorrência com um ou múltiplos alunos, data, horário, local, categoria, prioridade e descrição;
   - Consulta com filtros combinados (texto, status, categoria, série/turma, professor, período);
@@ -102,7 +102,7 @@ O navegador abrirá `http://localhost:4200`.
 
 | Perfil | E-mail | Senha |
 |---|---|---|
-| Administrador | `admin@monsenhor.edu.br` | `Admin@123` |
+| Coordenação | `admin@monsenhor.edu.br` | `Admin@123` |
 | Professor | `professor@monsenhor.edu.br` | `Professor@123` |
 | Aluno | `aluno@monsenhor.edu.br` | `Aluno@123` |
 
@@ -110,7 +110,7 @@ O navegador abrirá `http://localhost:4200`.
 
 ## Cadastrar alunos e turmas
 
-Entre com o perfil **Administrador** e abra **Alunos e turmas**:
+Entre com o perfil **Coordenação** e abra **Alunos e turmas**:
 
 1. **Cadastro Individual:** Clique em **Cadastrar aluno** e preencha nome, matrícula, série, turma e dados do responsável.
 2. **Edição e Inativação:** Na lista de alunos, use o ícone de lápis para editar ou o ícone de bloqueio para inativar alunos transferidos.
@@ -122,7 +122,7 @@ Entre com o perfil **Administrador** e abra **Alunos e turmas**:
 
 ## Criar o login e gerenciar professores
 
-Entre com o perfil **Administrador**, clique em **Professores** no menu:
+Entre com o perfil **Coordenação**, clique em **Professores** no menu:
 
 - **Novo professor:** Informe nome, e-mail e senha individual provisória;
 - **Desativar/Ativar acesso:** Bloqueie o acesso de professores sem apagar suas ocorrências registradas;
@@ -130,7 +130,7 @@ Entre com o perfil **Administrador**, clique em **Professores** no menu:
 
 ## Permissões aplicadas
 
-| Função | Administrador | Professor | Aluno |
+| Função | Coordenação | Professor | Aluno |
 |---|:---:|:---:|:---:|
 | Consultar painel | Sim | Sim | Sim, somente seus dados |
 | Criar ocorrência | Sim | Sim | Não |

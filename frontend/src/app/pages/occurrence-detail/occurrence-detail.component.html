@@ -130,7 +130,7 @@
         <section class="detail-card update-card">
           <div class="card-title">
             <h2>Registrar Acompanhamento</h2>
-            <span>{{ auth.hasRole('ADMINISTRADOR') ? 'Ação administrativa' : 'Acompanhamento do professor' }}</span>
+            <span>{{ auth.hasRole('ADMINISTRADOR') ? 'Ação da Coordenação' : 'Acompanhamento do professor' }}</span>
           </div>
           <form (ngSubmit)="addUpdate()">
             @if (auth.hasRole('ADMINISTRADOR')) {
