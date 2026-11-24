@@ -49,17 +49,21 @@ try {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
-    for (const s of initialStudents) {
+    const batchSize = 100;
+    for (let i = 0; i < initialStudents.length; i += batchSize) {
+      const slice = initialStudents.slice(i, i + batchSize);
+      const placeholders = slice.map(() => '(?, ?, ?, ?, ?, TRUE)').join(', ');
+      const values = slice.flatMap((s) => [s.registration, s.name, s.className, s.guardianName, s.guardianPhone]);
       await connection.execute(
         `INSERT INTO students (registration, name, class_name, guardian_name, guardian_phone, active)
-         VALUES (?, ?, ?, ?, ?, TRUE)
+         VALUES ${placeholders}
          ON DUPLICATE KEY UPDATE
            name = VALUES(name),
            class_name = VALUES(class_name),
            guardian_name = VALUES(guardian_name),
            guardian_phone = VALUES(guardian_phone),
            active = TRUE`,
-        [s.registration, s.name, s.className, s.guardianName, s.guardianPhone]
+        values
       );
     }
     await connection.commit();

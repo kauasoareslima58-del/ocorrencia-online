@@ -43,14 +43,21 @@ const connection = await mysql.createConnection({
   port: env.db.port,
   user: env.db.user,
   password: env.db.password,
+  ...(env.db.ssl ? { ssl: env.db.ssl } : {}),
   multipleStatements: true,
   charset: 'utf8mb4'
 });
 
 try {
-  await connection.query(
-    `CREATE DATABASE IF NOT EXISTS \`${env.db.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
-  );
+  try {
+    await connection.query(
+      `CREATE DATABASE IF NOT EXISTS \`${env.db.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    );
+  } catch (createErr) {
+    if (!['ER_DBACCESS_DENIED_ERROR', 'ER_SPECIFIC_ACCESS_DENIED_ERROR'].includes(createErr?.code)) {
+      throw createErr;
+    }
+  }
   await connection.query(`USE \`${env.db.database}\``);
   await connection.query('SET FOREIGN_KEY_CHECKS = 0');
   await connection.query(sqlContent);

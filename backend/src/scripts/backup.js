@@ -46,6 +46,7 @@ function runMysqldump(binPath, targetFile) {
       '--routines',
       '--triggers',
       '--add-drop-table',
+      ...(env.dbSslEnabled ? ['--ssl-mode=REQUIRED'] : []),
       env.db.database
     ];
 

@@ -146,6 +146,10 @@ DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=sua_senha_do_mysql
 DB_NAME=ocorrencia_online
+# Para MySQL na nuvem (Aiven, TiDB Cloud, etc.):
+DB_SSL=false
+DB_SSL_CA=
+DB_SSL_REJECT_UNAUTHORIZED=true
 JWT_SECRET=gere-uma-chave-aleatoria-segura-com-pelo-menos-32-caracteres
 JWT_EXPIRES_IN=8h
 MYSQL_BIN_PATH=

@@ -1,10 +1,12 @@
 import dotenv from 'dotenv';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
+const backendRoot = resolve(currentDir, '../..');
 dotenv.config();
-dotenv.config({ path: resolve(currentDir, '../../.env') });
+dotenv.config({ path: resolve(backendRoot, '.env') });
 
 const required = ['DB_HOST', 'DB_USER', 'DB_NAME', 'JWT_SECRET'];
 const missing = required.filter((key) => !String(process.env[key] ?? '').trim());
@@ -46,6 +48,22 @@ const extraOrigins = String(process.env.ALLOWED_ORIGINS ?? '')
 
 const allowedOrigins = [...new Set([frontendUrl, ...extraOrigins])];
 
+const dbSslEnabled = ['true', '1', 'yes', 'required'].includes(
+  String(process.env.DB_SSL ?? '').trim().toLowerCase()
+);
+const dbSslCaPath = String(process.env.DB_SSL_CA ?? '').trim();
+const dbSslRejectUnauthorized = !['false', '0', 'no'].includes(
+  String(process.env.DB_SSL_REJECT_UNAUTHORIZED ?? 'true').trim().toLowerCase()
+);
+
+const dbSsl = dbSslEnabled
+  ? {
+      minVersion: 'TLSv1.2',
+      rejectUnauthorized: dbSslRejectUnauthorized,
+      ...(dbSslCaPath ? { ca: readFileSync(resolve(backendRoot, dbSslCaPath), 'utf8') } : {})
+    }
+  : undefined;
+
 export const env = {
   port: apiPort,
   nodeEnv,
@@ -57,8 +75,10 @@ export const env = {
     port: dbPort,
     user: String(process.env.DB_USER).trim(),
     password: process.env.DB_PASSWORD ?? '',
-    database: dbName
+    database: dbName,
+    ...(dbSsl ? { ssl: dbSsl } : {})
   },
+  dbSslEnabled,
   jwtSecret,
   jwtExpiresIn: String(process.env.JWT_EXPIRES_IN ?? '8h').trim(),
   jwtIssuer: 'ocorrencia-online',

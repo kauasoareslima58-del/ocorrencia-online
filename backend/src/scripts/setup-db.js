@@ -1,14 +1,16 @@
 import dotenv from 'dotenv';
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import mysql from 'mysql2/promise';
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
+const backendRoot = resolve(currentDir, '../..');
 dotenv.config();
-dotenv.config({ path: resolve(currentDir, '../../.env') });
+dotenv.config({ path: resolve(backendRoot, '.env') });
 
-const sql = await readFile(resolve(currentDir, '../../database/schema.sql'), 'utf8');
+const sql = await readFile(resolve(backendRoot, 'database/schema.sql'), 'utf8');
 const required = ['DB_HOST', 'DB_USER', 'DB_NAME'];
 const missing = required.filter((key) => !String(process.env[key] ?? '').trim());
 
@@ -24,11 +26,27 @@ if (!/^[A-Za-z0-9_]+$/.test(database)) {
   process.exit(1);
 }
 
+const dbSslEnabled = ['true', '1', 'yes', 'required'].includes(
+  String(process.env.DB_SSL ?? '').trim().toLowerCase()
+);
+const dbSslCaPath = String(process.env.DB_SSL_CA ?? '').trim();
+const dbSslRejectUnauthorized = !['false', '0', 'no'].includes(
+  String(process.env.DB_SSL_REJECT_UNAUTHORIZED ?? 'true').trim().toLowerCase()
+);
+const ssl = dbSslEnabled
+  ? {
+      minVersion: 'TLSv1.2',
+      rejectUnauthorized: dbSslRejectUnauthorized,
+      ...(dbSslCaPath ? { ca: readFileSync(resolve(backendRoot, dbSslCaPath), 'utf8') } : {})
+    }
+  : undefined;
+
 const connection = await mysql.createConnection({
   host: String(process.env.DB_HOST).trim(),
   port: Number(process.env.DB_PORT ?? 3306),
   user: String(process.env.DB_USER).trim(),
   password: process.env.DB_PASSWORD ?? '',
+  ...(ssl ? { ssl } : {}),
   multipleStatements: true
 });
 
@@ -61,9 +79,17 @@ async function ensureIndex(tableName, indexName, columnsSql) {
 }
 
 try {
-  await connection.query(
-    `CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
-  );
+  try {
+    await connection.query(
+      `CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    );
+  } catch (createErr) {
+    // Em provedores na nuvem (ex.: Aiven, TiDB) o banco já vem criado e o usuário pode não ter privilégio global de CREATE DATABASE
+    if (!['ER_DBACCESS_DENIED_ERROR', 'ER_SPECIFIC_ACCESS_DENIED_ERROR'].includes(createErr?.code)) {
+      throw createErr;
+    }
+  }
+
   await connection.query(`USE \`${database}\``);
   await connection.query(sql);
 
@@ -78,7 +104,6 @@ try {
   await ensureIndex('occurrences', 'idx_occurrences_created_at', 'created_at');
   await ensureIndex('audit_logs', 'idx_audit_entity_action', 'entity, action, created_at');
 
-  // Em bancos legados que ainda tinham perfil ALUNO no ENUM, garantir que nenhum aluno tenha acesso ativo
   const [roleColumn] = await connection.execute(
     `SELECT COLUMN_TYPE
      FROM information_schema.COLUMNS
@@ -104,6 +129,9 @@ function databaseErrorMessage(error) {
   }
   if (error?.code === 'ECONNREFUSED') {
     return 'o MySQL não está ligado ou a porta configurada está incorreta.';
+  }
+  if (error?.code === 'HANDSHAKE_NO_SSL_SUPPORT' || error?.code === 'ER_SECURE_TRANSPORT_REQUIRED') {
+    return 'o servidor MySQL exige conexão criptografada. Defina DB_SSL=true no arquivo backend/.env.';
   }
   return error?.message ?? 'erro desconhecido.';
 }

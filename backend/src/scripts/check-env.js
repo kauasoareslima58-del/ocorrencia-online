@@ -6,6 +6,7 @@ try {
   console.log(`- Origens permitidas (CORS): ${env.allowedOrigins.join(', ')}`);
   console.log(`- MySQL: ${env.db.user}@${env.db.host}:${env.db.port}`);
   console.log(`- Banco: ${env.db.database}`);
+  console.log(`- SSL no MySQL: ${env.dbSslEnabled ? 'ativado' : 'desativado'}`);
   console.log(`- Senha do MySQL informada: ${env.db.password ? 'sim' : 'não'}`);
   console.log(`- JWT_SECRET: configurada (${env.jwtSecret.length} caracteres)`);
 
