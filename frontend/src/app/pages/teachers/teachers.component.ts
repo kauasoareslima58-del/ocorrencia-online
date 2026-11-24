@@ -1,9 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, HostListener, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { Teacher } from '../../core/models';
-import { formatDate } from '../../core/view-helpers';
+import { formatDate, isStrongPassword } from '../../core/view-helpers';
 
 @Component({
   selector: 'app-teachers',
@@ -16,6 +16,7 @@ export class TeachersComponent implements OnInit {
   private readonly api = inject(ApiService);
   teachers: Teacher[] = [];
   search = '';
+  statusFilter: 'all' | 'active' | 'inactive' = 'all';
   loading = true;
   saving = false;
   showForm = false;
@@ -32,6 +33,7 @@ export class TeachersComponent implements OnInit {
 
   // Reset password
   showResetModal = false;
+  showResetPassword = false;
   selectedTeacher: Teacher | null = null;
   newPassword = '';
   resetSaving = false;
@@ -39,12 +41,21 @@ export class TeachersComponent implements OnInit {
 
   readonly formatDate = formatDate;
 
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.showEditModal) this.closeEditModal();
+    else if (this.showResetModal) this.closeResetModal();
+  }
+
   get filteredTeachers(): Teacher[] {
     const q = this.search.trim().toLowerCase();
-    if (!q) return this.teachers;
-    return this.teachers.filter(
-      (t) => t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q)
-    );
+    return this.teachers.filter((t) => {
+      const isActive = Boolean(t.active);
+      if (this.statusFilter === 'active' && !isActive) return false;
+      if (this.statusFilter === 'inactive' && isActive) return false;
+      if (!q) return true;
+      return t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q);
+    });
   }
 
   ngOnInit(): void { this.loadTeachers(); }
@@ -59,6 +70,10 @@ export class TeachersComponent implements OnInit {
 
   createTeacher(): void {
     if (this.saving) return;
+    if (!isStrongPassword(this.teacherForm.password)) {
+      this.error = 'A senha deve ter entre 8 e 72 caracteres, com maiúscula, minúscula, número e símbolo.';
+      return;
+    }
     this.saving = true;
     this.error = '';
     this.success = '';
@@ -115,18 +130,21 @@ export class TeachersComponent implements OnInit {
     if (!confirm(`Deseja realmente ${action} o acesso do professor ${teacher.name}?`)) return;
 
     this.error = '';
+    this.success = '';
     this.api.updateTeacherStatus(teacher.id, active).subscribe({
-      next: () => {
-        teacher.active = active;
+      next: (updated) => {
+        teacher.active = updated.active;
+        teacher.occurrenceCount = updated.occurrenceCount;
         this.success = active ? `Acesso de ${teacher.name} ativado.` : `Acesso de ${teacher.name} desativado.`;
       },
-      error: () => this.error = 'Não foi possível alterar o acesso do professor.'
+      error: () => { this.error = 'Não foi possível alterar o acesso do professor.'; }
     });
   }
 
   openResetModal(teacher: Teacher): void {
     this.selectedTeacher = teacher;
     this.newPassword = '';
+    this.showResetPassword = false;
     this.resetError = '';
     this.showResetModal = true;
   }
@@ -138,8 +156,8 @@ export class TeachersComponent implements OnInit {
 
   submitResetPassword(): void {
     if (this.resetSaving || !this.selectedTeacher) return;
-    if (this.newPassword.length < 8) {
-      this.resetError = 'A senha deve ter no mínimo 8 caracteres com maiúscula, minúscula, número e símbolo.';
+    if (!isStrongPassword(this.newPassword)) {
+      this.resetError = 'A senha deve ter entre 8 e 72 caracteres, com maiúscula, minúscula, número e símbolo.';
       return;
     }
 

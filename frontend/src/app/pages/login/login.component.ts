@@ -21,10 +21,11 @@ export class LoginComponent {
   errorMessage = '';
 
   submit(): void {
-    if (!this.email || !this.password || this.loading) return;
+    const trimmedEmail = this.email.trim();
+    if (!trimmedEmail || !this.password || this.loading) return;
     this.loading = true;
     this.errorMessage = '';
-    this.auth.login(this.email.trim(), this.password).subscribe({
+    this.auth.login(trimmedEmail, this.password).subscribe({
       next: () => void this.router.navigate(['/painel']),
       error: (error: HttpErrorResponse) => {
         this.loading = false;
@@ -33,15 +34,5 @@ export class LoginComponent {
           : 'Não foi possível acessar o sistema. Verifique se a API está ligada.';
       }
     });
-  }
-
-  useDemo(role: 'admin' | 'professor'): void {
-    if (role === 'admin') {
-      this.email = 'admin@monsenhor.edu.br';
-      this.password = 'Admin@123';
-    } else {
-      this.email = 'professor@monsenhor.edu.br';
-      this.password = 'Professor@123';
-    }
   }
 }

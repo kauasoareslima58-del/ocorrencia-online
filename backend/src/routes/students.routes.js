@@ -1,18 +1,19 @@
 import { Router } from 'express';
 import { pool } from '../config/db.js';
-import { isValidClass } from '../config/classes.js';
+import { isValidClass, normalizeClassName } from '../config/classes.js';
 import { allowRoles } from '../middleware/auth.js';
 import { httpError } from '../middleware/error-handler.js';
 import { writeAudit } from '../utils/audit.js';
 import { attachStudents, occurrenceSelect, roleScope } from '../utils/occurrence-queries.js';
+import { cleanText, isValidRegistration, optionalText } from '../utils/validators.js';
 
 export const studentsRouter = Router();
 studentsRouter.use(allowRoles('PROFESSOR', 'ADMINISTRADOR'));
 
 studentsRouter.get('/', async (req, res) => {
   const search = String(req.query.search ?? '').trim();
-  const className = String(req.query.className ?? '').trim();
-  const includeInactive = req.query.includeInactive === 'true';
+  const className = normalizeClassName(req.query.className ?? '');
+  const includeInactive = req.query.includeInactive === 'true' && req.user.role === 'ADMINISTRADOR';
   const like = `%${search}%`;
 
   const where = [];
@@ -48,7 +49,9 @@ studentsRouter.get('/', async (req, res) => {
      FROM students s
      ${countJoin}
      ${whereClause}
-     GROUP BY s.id ORDER BY s.name LIMIT 500`,
+     GROUP BY s.id
+     ORDER BY s.name ASC
+     LIMIT 2000`,
     queryParams
   );
   res.json(rows);
@@ -57,17 +60,29 @@ studentsRouter.get('/', async (req, res) => {
 studentsRouter.post('/', allowRoles('ADMINISTRADOR'), async (req, res) => {
   const name = cleanText(req.body?.name, 120);
   const registration = String(req.body?.registration ?? '').trim().toUpperCase();
-  const className = cleanText(req.body?.className, 40);
+  const className = normalizeClassName(cleanText(req.body?.className, 40));
   const guardianName = optionalText(req.body?.guardianName, 120);
   const guardianPhone = optionalText(req.body?.guardianPhone, 30);
 
-  if (name.length < 3) throw httpError(400, 'Informe o nome completo do aluno.');
-  if (!/^[A-Z0-9.-]{3,30}$/.test(registration)) throw httpError(400, 'A matrícula deve ter entre 3 e 30 letras ou números.');
-  if (!isValidClass(className)) throw httpError(400, 'Selecione uma série entre o 6º Ano e a 3ª Série e uma turma entre A e D.');
+  if (name.length < 3) throw httpError(400, 'Informe o nome completo do aluno (mínimo 3 caracteres).');
+  if (!isValidRegistration(registration)) {
+    throw httpError(400, 'A matrícula deve ter entre 3 e 30 letras, números, pontos ou hífens.');
+  }
+  if (!isValidClass(className)) {
+    throw httpError(400, 'Selecione uma série entre o 6º Ano e a 3ª Série e uma turma entre A e D.');
+  }
 
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
+    const [[existing]] = await connection.execute(
+      'SELECT id, name FROM students WHERE registration = ? LIMIT 1',
+      [registration]
+    );
+    if (existing) {
+      throw httpError(409, `Já existe um aluno cadastrado com a matrícula ${registration} (${existing.name}).`);
+    }
+
     const [result] = await connection.execute(
       `INSERT INTO students (registration, name, class_name, guardian_name, guardian_phone, active)
        VALUES (?, ?, ?, ?, ?, TRUE)`,
@@ -98,17 +113,21 @@ studentsRouter.post('/', allowRoles('ADMINISTRADOR'), async (req, res) => {
 
 studentsRouter.patch('/:id', allowRoles('ADMINISTRADOR'), async (req, res) => {
   const id = Number(req.params.id);
-  if (!Number.isInteger(id)) throw httpError(400, 'Identificador inválido.');
+  if (!Number.isInteger(id) || id <= 0) throw httpError(400, 'Identificador inválido.');
 
   const name = cleanText(req.body?.name, 120);
   const registration = String(req.body?.registration ?? '').trim().toUpperCase();
-  const className = cleanText(req.body?.className, 40);
+  const className = normalizeClassName(cleanText(req.body?.className, 40));
   const guardianName = optionalText(req.body?.guardianName, 120);
   const guardianPhone = optionalText(req.body?.guardianPhone, 30);
 
-  if (name.length < 3) throw httpError(400, 'Informe o nome completo do aluno.');
-  if (!/^[A-Z0-9.-]{3,30}$/.test(registration)) throw httpError(400, 'A matrícula deve ter entre 3 e 30 letras ou números.');
-  if (!isValidClass(className)) throw httpError(400, 'Selecione uma série entre o 6º Ano e a 3ª Série e uma turma entre A e D.');
+  if (name.length < 3) throw httpError(400, 'Informe o nome completo do aluno (mínimo 3 caracteres).');
+  if (!isValidRegistration(registration)) {
+    throw httpError(400, 'A matrícula deve ter entre 3 e 30 letras, números, pontos ou hífens.');
+  }
+  if (!isValidClass(className)) {
+    throw httpError(400, 'Selecione uma série entre o 6º Ano e a 3ª Série e uma turma entre A e D.');
+  }
 
   const connection = await pool.getConnection();
   try {
@@ -117,7 +136,10 @@ studentsRouter.patch('/:id', allowRoles('ADMINISTRADOR'), async (req, res) => {
     if (!student) throw httpError(404, 'Aluno não encontrado.');
 
     if (registration !== student.registration) {
-      const [[exists]] = await connection.execute('SELECT id FROM students WHERE registration = ? AND id != ?', [registration, id]);
+      const [[exists]] = await connection.execute(
+        'SELECT id FROM students WHERE registration = ? AND id != ? LIMIT 1',
+        [registration, id]
+      );
       if (exists) throw httpError(409, 'Já existe outro aluno cadastrado com esta matrícula.');
     }
 
@@ -158,7 +180,9 @@ studentsRouter.patch('/:id', allowRoles('ADMINISTRADOR'), async (req, res) => {
 studentsRouter.patch('/:id/status', allowRoles('ADMINISTRADOR'), async (req, res) => {
   const id = Number(req.params.id);
   const active = req.body?.active;
-  if (!Number.isInteger(id) || typeof active !== 'boolean') throw httpError(400, 'Dados inválidos.');
+  if (!Number.isInteger(id) || id <= 0 || typeof active !== 'boolean') {
+    throw httpError(400, 'Dados inválidos.');
+  }
 
   const connection = await pool.getConnection();
   try {
@@ -188,6 +212,8 @@ studentsRouter.patch('/:id/status', allowRoles('ADMINISTRADOR'), async (req, res
 
 studentsRouter.post('/batch', allowRoles('ADMINISTRADOR'), async (req, res) => {
   const items = req.body?.students;
+  const updateExisting = Boolean(req.body?.updateExisting);
+
   if (!Array.isArray(items) || !items.length) {
     throw httpError(400, 'Envie uma lista de alunos para importação.');
   }
@@ -198,55 +224,114 @@ studentsRouter.post('/batch', allowRoles('ADMINISTRADOR'), async (req, res) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
-    let successCount = 0;
+
+    const validRows = [];
+    const seenInFile = new Set();
     const errors = [];
+    const duplicates = [];
 
     for (let i = 0; i < items.length; i++) {
+      const lineNum = i + 1;
       const item = items[i];
       const name = String(item?.name ?? '').trim().replace(/\s+/g, ' ');
       const registration = String(item?.registration ?? '').trim().toUpperCase();
-      const className = String(item?.className ?? '').trim().replace(/\s+/g, ' ');
-      const guardianName = String(item?.guardianName ?? '').trim() || null;
-      const guardianPhone = String(item?.guardianPhone ?? '').trim() || null;
+      const className = normalizeClassName(String(item?.className ?? '').trim().replace(/\s+/g, ' '));
+      const guardianName = String(item?.guardianName ?? '').trim().slice(0, 120) || null;
+      const guardianPhone = String(item?.guardianPhone ?? '').trim().slice(0, 30) || null;
 
-      if (name.length < 3) {
-        errors.push(`Linha ${i + 1}: Nome "${name}" inválido.`);
+      if (name.length < 3 || name.length > 120) {
+        errors.push(`Linha ${lineNum}: Nome "${name || '(vazio)'}" inválido (use entre 3 e 120 caracteres).`);
         continue;
       }
-      if (!/^[A-Z0-9.-]{3,30}$/.test(registration)) {
-        errors.push(`Linha ${i + 1} (${name}): Matrícula "${registration}" inválida.`);
+      if (!isValidRegistration(registration)) {
+        errors.push(`Linha ${lineNum} (${name}): Matrícula "${registration || '(vazia)'}" inválida.`);
         continue;
       }
       if (!isValidClass(className)) {
-        errors.push(`Linha ${i + 1} (${name}): Turma "${className}" inválida.`);
+        errors.push(`Linha ${lineNum} (${name}): Turma "${item?.className ?? ''}" inválida (use do 6º Ano à 3ª Série, turmas A a D).`);
+        continue;
+      }
+      if (seenInFile.has(registration)) {
+        duplicates.push(`Linha ${lineNum} (${name}): Matrícula "${registration}" duplicada no próprio arquivo CSV.`);
         continue;
       }
 
-      await connection.execute(
-        `INSERT INTO students (registration, name, class_name, guardian_name, guardian_phone, active)
-         VALUES (?, ?, ?, ?, ?, TRUE)
-         ON DUPLICATE KEY UPDATE
-           name = VALUES(name),
-           class_name = VALUES(class_name),
-           guardian_name = COALESCE(VALUES(guardian_name), guardian_name),
-           guardian_phone = COALESCE(VALUES(guardian_phone), guardian_phone),
-           active = TRUE`,
-        [registration, name, className, guardianName, guardianPhone]
+      seenInFile.add(registration);
+      validRows.push({ lineNum, registration, name, className, guardianName, guardianPhone });
+    }
+
+    let existingSet = new Set();
+    if (validRows.length) {
+      const registrations = validRows.map((r) => r.registration);
+      const [existingRows] = await connection.execute(
+        `SELECT registration FROM students WHERE registration IN (${registrations.map(() => '?').join(',')})`,
+        registrations
       );
-      successCount++;
+      existingSet = new Set(existingRows.map((r) => String(r.registration).toUpperCase()));
+    }
+
+    let successCount = 0;
+    let updatedCount = 0;
+
+    for (const row of validRows) {
+      const alreadyExists = existingSet.has(row.registration);
+
+      if (alreadyExists && !updateExisting) {
+        duplicates.push(`Linha ${row.lineNum} (${row.name}): Matrícula "${row.registration}" já está cadastrada no sistema.`);
+        continue;
+      }
+
+      if (alreadyExists && updateExisting) {
+        await connection.execute(
+          `UPDATE students
+           SET name = ?, class_name = ?,
+               guardian_name = COALESCE(?, guardian_name),
+               guardian_phone = COALESCE(?, guardian_phone),
+               active = TRUE
+           WHERE registration = ?`,
+          [row.name, row.className, row.guardianName, row.guardianPhone, row.registration]
+        );
+        updatedCount++;
+      } else {
+        await connection.execute(
+          `INSERT INTO students (registration, name, class_name, guardian_name, guardian_phone, active)
+           VALUES (?, ?, ?, ?, ?, TRUE)`,
+          [row.registration, row.name, row.className, row.guardianName, row.guardianPhone]
+        );
+        successCount++;
+      }
     }
 
     await writeAudit(connection, {
       userId: req.user.id,
       action: 'CREATE',
       entity: 'STUDENT',
-      details: { action: 'batch_import', processed: items.length, successCount, errorCount: errors.length }
+      details: {
+        action: 'batch_import',
+        processed: items.length,
+        successCount,
+        updatedCount,
+        duplicateCount: duplicates.length,
+        errorCount: errors.length,
+        updateExisting
+      }
     });
 
     await connection.commit();
+
+    const parts = [];
+    if (successCount > 0) parts.push(`${successCount} novo(s) cadastrado(s)`);
+    if (updatedCount > 0) parts.push(`${updatedCount} atualizado(s)`);
+    if (duplicates.length > 0) parts.push(`${duplicates.length} duplicado(s) ignorado(s)`);
+    if (errors.length > 0) parts.push(`${errors.length} linha(s) com erro`);
+
     res.json({
-      message: `Importação concluída. ${successCount} aluno(s) processados com sucesso.`,
+      message: parts.length ? `Importação concluída: ${parts.join(', ')}.` : 'Nenhum aluno foi importado.',
       successCount,
+      updatedCount,
+      duplicateCount: duplicates.length,
+      errorCount: errors.length,
+      duplicates,
       errors
     });
   } catch (error) {
@@ -259,13 +344,16 @@ studentsRouter.post('/batch', allowRoles('ADMINISTRADOR'), async (req, res) => {
 
 studentsRouter.get('/:id/history', async (req, res) => {
   const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: 'Identificador inválido.' });
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ message: 'Identificador inválido.' });
+  }
   const [[student]] = await pool.execute(
     `SELECT id, registration, name, class_name AS className, guardian_name AS guardianName,
             guardian_phone AS guardianPhone, active FROM students WHERE id = ?`,
     [id]
   );
   if (!student) return res.status(404).json({ message: 'Aluno não encontrado.' });
+
   const scope = roleScope(req.user);
   const [rows] = await pool.execute(
     `${occurrenceSelect}
@@ -274,16 +362,6 @@ studentsRouter.get('/:id/history', async (req, res) => {
      ORDER BY o.occurrence_date DESC, o.occurrence_time DESC, o.id DESC`,
     [id, ...scope.params]
   );
-  const occurrences = await attachStudents(rows, pool, req.user);
-  res.json({ student, occurrences });
+  const occurrences = await attachStudents(rows, pool);
+  return res.json({ student, occurrences });
 });
-
-function cleanText(value, maxLength) {
-  const text = String(value ?? '').trim().replace(/\s+/g, ' ');
-  if (text.length > maxLength) throw httpError(400, `O texto deve ter no máximo ${maxLength} caracteres.`);
-  return text;
-}
-
-function optionalText(value, maxLength) {
-  return cleanText(value, maxLength) || null;
-}

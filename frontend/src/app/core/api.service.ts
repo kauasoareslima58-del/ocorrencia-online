@@ -2,9 +2,9 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import {
-  AppNotification,
   AuditLog,
   BatchImportResponse,
+  ChangePasswordResponse,
   DashboardStats,
   NamedItem,
   NotificationsResponse,
@@ -69,8 +69,8 @@ export class ApiService {
     return this.http.patch<{ id: number; active: boolean; message: string }>(`${this.base}/students/${id}/status`, { active });
   }
 
-  batchCreateStudents(students: Array<object>) {
-    return this.http.post<BatchImportResponse>(`${this.base}/students/batch`, { students });
+  batchCreateStudents(students: Array<object>, updateExisting = false) {
+    return this.http.post<BatchImportResponse>(`${this.base}/students/batch`, { students, updateExisting });
   }
 
   getStudentHistory(id: number) {
@@ -136,7 +136,7 @@ export class ApiService {
   }
 
   changePassword(currentPassword: string, newPassword: string) {
-    return this.http.post<{ message: string }>(`${this.base}/auth/change-password`, { currentPassword, newPassword });
+    return this.http.post<ChangePasswordResponse>(`${this.base}/auth/change-password`, { currentPassword, newPassword });
   }
 
   getNotifications() {
@@ -150,4 +150,5 @@ export class ApiService {
 
 interface OccurrenceUpdateResponse {
   message: string;
+  occurrence?: Occurrence;
 }

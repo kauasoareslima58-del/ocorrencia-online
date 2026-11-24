@@ -24,14 +24,27 @@
   </section>
 }
 
-@if (success) { <div class="success-message no-print" role="status">{{ success }}</div> }
+@if (error) {
+  <div class="feedback-banner error no-print" role="alert">
+    <span>{{ error }}</span>
+    <button type="button" class="banner-close" aria-label="Fechar aviso" (click)="error = ''">✕</button>
+  </div>
+}
+@if (success) {
+  <div class="feedback-banner success no-print" role="status">
+    <span>{{ success }}</span>
+    <button type="button" class="banner-close" aria-label="Fechar aviso" (click)="success = ''">✕</button>
+  </div>
+}
 
 <section class="filter-card no-print">
   <div class="field search-field"><label for="studentSearch">Pesquisar aluno</label><input id="studentSearch" [(ngModel)]="search" (keyup.enter)="loadStudents()" placeholder="Nome ou matrícula"></div>
   <div class="field"><label for="classFilter">Filtrar por turma</label><select id="classFilter" [(ngModel)]="selectedClass" (change)="loadStudents()"><option value="">Todas as turmas</option>@for (className of classes; track className) { <option [value]="className">{{ classLabel(className) }}</option> }</select></div>
-  <div class="checkbox-field">
-    <label><input type="checkbox" [(ngModel)]="includeInactive" (change)="loadStudents()"> Exibir alunos inativos</label>
-  </div>
+  @if (auth.hasRole('ADMINISTRADOR')) {
+    <div class="checkbox-field">
+      <label><input type="checkbox" [(ngModel)]="includeInactive" (change)="loadStudents()"> Exibir alunos inativos</label>
+    </div>
+  }
   <button class="button button-primary" type="button" (click)="loadStudents()">Pesquisar</button>
 </section>
 
@@ -39,31 +52,33 @@
   <section class="content-card students-panel">
     <div class="list-heading"><strong>{{ selectedClass ? classLabel(selectedClass) : 'Todos os alunos' }}</strong><span>{{ students.length }} aluno(s)</span></div>
     <div class="students-list">
-      @if (loading) { <div class="empty-state">Carregando alunos…</div> }
-      @for (student of students; track student.id) {
-        <div class="student-row-wrapper" [class.inactive]="student.active === false || student.active === 0">
-          <button class="student-row" [class.active]="selectedStudent?.id === student.id" (click)="openHistory(student)">
-            <span class="avatar">{{ student.name.charAt(0) }}</span>
-            <span class="student-info">
-              <strong>{{ student.name }}</strong>
-              <small>{{ student.registration }} · {{ student.className }}</small>
-              @if (student.active === false || student.active === 0) {
-                <span class="badge-inactive">Inativo</span>
-              }
-            </span>
-            <b class="occurrence-count" title="Total de ocorrências">{{ student.occurrenceCount || 0 }}</b>
-          </button>
+      @if (loading) { <div class="loading-state"><span class="spinner" aria-hidden="true"></span> Carregando alunos…</div> }
+      @else {
+        @for (student of students; track student.id) {
+          <div class="student-row-wrapper" [class.inactive]="student.active === false || student.active === 0">
+            <button type="button" class="student-row" [class.active]="selectedStudent?.id === student.id" (click)="openHistory(student)">
+              <span class="avatar">{{ student.name.charAt(0) }}</span>
+              <span class="student-info">
+                <strong>{{ student.name }}</strong>
+                <small>{{ student.registration }} · {{ student.className }}</small>
+                @if (student.active === false || student.active === 0) {
+                  <span class="badge-inactive">Inativo</span>
+                }
+              </span>
+              <b class="occurrence-count" title="Total de ocorrências">{{ student.occurrenceCount || 0 }}</b>
+            </button>
 
-          @if (auth.hasRole('ADMINISTRADOR')) {
-            <div class="student-actions">
-              <button class="icon-btn edit-btn" (click)="openEdit(student, $event)" title="Editar dados do aluno">✏️</button>
-              <button class="icon-btn status-btn" (click)="toggleStudentStatus(student, $event)" [title]="(student.active === false || student.active === 0) ? 'Reativar aluno' : 'Inativar aluno'">
-                {{ (student.active === false || student.active === 0) ? '🔄' : '🚫' }}
-              </button>
-            </div>
-          }
-        </div>
-      } @empty { @if (!loading) { <div class="empty-state">Nenhum aluno encontrado.</div> } }
+            @if (auth.hasRole('ADMINISTRADOR')) {
+              <div class="student-actions">
+                <button type="button" class="icon-btn edit-btn" (click)="openEdit(student, $event)" title="Editar dados do aluno">✏️</button>
+                <button type="button" class="icon-btn status-btn" (click)="toggleStudentStatus(student, $event)" [title]="(student.active === false || student.active === 0) ? 'Reativar aluno' : 'Inativar aluno'">
+                  {{ (student.active === false || student.active === 0) ? '🔄' : '🚫' }}
+                </button>
+              </div>
+            }
+          </div>
+        } @empty { <div class="empty-state">Nenhum aluno encontrado.</div> }
+      }
     </div>
   </section>
 
@@ -87,7 +102,7 @@
           </button>
         </div>
       </div>
-      @if (historyLoading) { <div class="empty-state">Carregando histórico…</div> }
+      @if (historyLoading) { <div class="loading-state"><span class="spinner" aria-hidden="true"></span> Carregando histórico…</div> }
       @else if (history.length) {
         <div class="history-list">
           @for (item of history; track item.id) {
@@ -175,18 +190,18 @@
 
 <!-- Modal de Edição de Aluno -->
 @if (showEditModal) {
-  <div class="modal-backdrop no-print">
-    <div class="modal-card">
+  <div class="modal-backdrop no-print" (click)="closeEdit()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Editar Dados do Aluno</h3>
-        <button class="close-btn" (click)="closeEdit()">✕</button>
+        <button type="button" class="close-btn" aria-label="Fechar" (click)="closeEdit()">✕</button>
       </div>
       <form (ngSubmit)="submitEdit()" #editForm="ngForm">
         <label for="editName">Nome Completo</label>
-        <input id="editName" name="editName" required minlength="3" [(ngModel)]="editStudentForm.name">
+        <input id="editName" name="editName" required minlength="3" maxlength="120" [(ngModel)]="editStudentForm.name">
 
         <label for="editRegistration">Matrícula</label>
-        <input id="editRegistration" name="editRegistration" required [(ngModel)]="editStudentForm.registration">
+        <input id="editRegistration" name="editRegistration" required minlength="3" maxlength="30" [(ngModel)]="editStudentForm.registration">
 
         <div class="row-fields">
           <div>
@@ -204,12 +219,12 @@
         </div>
 
         <label for="editGuardian">Responsável</label>
-        <input id="editGuardian" name="editGuardian" [(ngModel)]="editStudentForm.guardianName" placeholder="Nome do responsável">
+        <input id="editGuardian" name="editGuardian" maxlength="120" [(ngModel)]="editStudentForm.guardianName" placeholder="Nome do responsável">
 
         <label for="editPhone">Telefone</label>
-        <input id="editPhone" name="editPhone" [(ngModel)]="editStudentForm.guardianPhone" placeholder="(14) 99999-9999">
+        <input id="editPhone" name="editPhone" maxlength="30" [(ngModel)]="editStudentForm.guardianPhone" placeholder="(14) 99999-9999">
 
-        @if (editError) { <p class="modal-error">{{ editError }}</p> }
+        @if (editError) { <p class="modal-error" role="alert">{{ editError }}</p> }
 
         <div class="modal-actions">
           <button type="button" class="btn-cancel" (click)="closeEdit()">Cancelar</button>
@@ -222,17 +237,18 @@
 
 <!-- Modal de Importação de CSV -->
 @if (showImportModal) {
-  <div class="modal-backdrop no-print">
-    <div class="modal-card import-modal">
+  <div class="modal-backdrop no-print" (click)="closeImportModal()">
+    <div class="modal-card import-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Importar Alunos via Planilha (CSV)</h3>
-        <button class="close-btn" (click)="closeImportModal()">✕</button>
+        <button type="button" class="close-btn" aria-label="Fechar" (click)="closeImportModal()">✕</button>
       </div>
 
       <div class="import-instructions">
         <p>Selecione um arquivo <strong>.CSV</strong> contendo as seguintes colunas (separadas por vírgula ou ponto-e-vírgula):</p>
         <code>Matrícula, Nome do Aluno, Série/Turma, Nome do Responsável, Telefone</code>
         <small>Exemplo: <code>20260050, Bruno Silveira, 1ª Série B, Marcos Silveira, (14) 99888-1122</code></small>
+        <button type="button" class="template-link-btn" (click)="downloadCsvTemplate()">⬇ Baixar planilha modelo (.csv)</button>
       </div>
 
       <div class="file-picker">
@@ -240,11 +256,16 @@
         <input id="csvFileInput" type="file" accept=".csv,text/csv" (change)="onFileSelected($event)">
       </div>
 
+      <label class="import-option-check">
+        <input type="checkbox" [(ngModel)]="updateExistingOnImport">
+        <span>Atualizar dados caso a matrícula já esteja cadastrada (por padrão, cadastros duplicados são bloqueados)</span>
+      </label>
+
       @if (csvData.length) {
         <div class="preview-box">
-          <strong>✓ {{ csvData.length }} aluno(s) prontos para importação</strong>
+          <strong>✓ {{ csvData.length }} aluno(s) lidos e prontos para validação</strong>
           <ul>
-            @for (item of csvData.slice(0, 5); track item.registration) {
+            @for (item of csvData.slice(0, 5); track $index) {
               <li>{{ item.registration }} — {{ item.name }} ({{ item.className }})</li>
             }
           </ul>
@@ -252,13 +273,24 @@
         </div>
       }
 
-      @if (importError) { <p class="modal-error">{{ importError }}</p> }
-      @if (importSuccess) { <p class="modal-success">{{ importSuccess }}</p> }
+      @if (importError) { <p class="modal-error" role="alert">{{ importError }}</p> }
+      @if (importSuccess) { <p class="modal-success" role="status">{{ importSuccess }}</p> }
+      @if (importDuplicates.length) {
+        <div class="modal-warning">
+          <strong>{{ importDuplicates.length }} matrícula(s) duplicada(s) ignorada(s):</strong>
+          <ul>
+            @for (dupLine of importDuplicates.slice(0, 6); track $index) {
+              <li>{{ dupLine }}</li>
+            }
+          </ul>
+          @if (importDuplicates.length > 6) { <small>... e mais {{ importDuplicates.length - 6 }} duplicata(s).</small> }
+        </div>
+      }
       @if (importErrors.length) {
         <div class="modal-error">
-          <strong>{{ importErrors.length }} linha(s) ignorada(s) por erro:</strong>
+          <strong>{{ importErrors.length }} linha(s) ignorada(s) por erro de validação:</strong>
           <ul>
-            @for (errLine of importErrors.slice(0, 8); track errLine) {
+            @for (errLine of importErrors.slice(0, 8); track $index) {
               <li>{{ errLine }}</li>
             }
           </ul>

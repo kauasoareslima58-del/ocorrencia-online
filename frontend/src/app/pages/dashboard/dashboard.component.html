@@ -2,9 +2,17 @@
   <div>
     <span class="eyebrow">Visão geral</span>
     <h1>Olá, {{ auth.currentUser?.name }}.</h1>
-    <p>Acompanhe a situação das ocorrências da escola.</p>
+    <p>
+      Acompanhe a situação real das ocorrências da escola.
+      @if (stats?.updatedAt) {
+        <small class="updated-at">Atualizado em {{ formatDateTime(stats!.updatedAt!) }}</small>
+      }
+    </p>
   </div>
   <div class="page-actions">
+    <button type="button" class="button button-secondary" [disabled]="loading || refreshing" (click)="load(true)">
+      {{ refreshing ? 'Atualizando…' : '↻ Atualizar' }}
+    </button>
     @if (auth.hasRole('ADMINISTRADOR')) {
       <a class="button button-secondary" routerLink="/professores">Cadastrar professor</a>
     }
@@ -15,9 +23,12 @@
 </section>
 
 @if (loading) {
-  <div class="state-card">Carregando indicadores…</div>
+  <div class="state-card loading-state"><span class="spinner" aria-hidden="true"></span> Carregando indicadores do banco de dados…</div>
 } @else if (error) {
-  <div class="state-card error">{{ error }}</div>
+  <div class="state-card error">
+    <p>{{ error }}</p>
+    <button type="button" class="button button-secondary" (click)="load(false)">Tentar novamente</button>
+  </div>
 } @else if (stats; as data) {
   <section class="metric-grid" aria-label="Indicadores de ocorrências">
     <a class="metric total" routerLink="/ocorrencias"><span>Total</span><strong>{{ data.totals.all }}</strong><small>ocorrências registradas →</small></a>
@@ -25,6 +36,80 @@
     <a class="metric analysis" routerLink="/ocorrencias" [queryParams]="{ status: 'EM_ANALISE' }"><span>Em análise</span><strong>{{ data.totals.analysis }}</strong><small>em avaliação →</small></a>
     <a class="metric monitoring" routerLink="/ocorrencias" [queryParams]="{ status: 'EM_ACOMPANHAMENTO' }"><span>Acompanhamento</span><strong>{{ data.totals.monitoring }}</strong><small>com providências →</small></a>
     <a class="metric closed" routerLink="/ocorrencias" [queryParams]="{ status: 'ENCERRADA' }"><span>Encerradas</span><strong>{{ data.totals.closed }}</strong><small>casos finalizados →</small></a>
+  </section>
+
+  <!-- Indicadores de Desempenho reais -->
+  <section class="kpi-strip" aria-label="Indicadores de desempenho">
+    <div class="kpi-card">
+      <span class="kpi-label">Taxa de resolução</span>
+      <strong>{{ data.performance.resolutionRate }}%</strong>
+      <small>{{ data.totals.closed }} de {{ data.totals.all }} encerrada(s)</small>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Tempo médio de encerramento</span>
+      <strong>{{ formatDurationHours(data.performance.avgResolutionHours) }}</strong>
+      <small>baseado nos casos concluídos</small>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Registros neste mês</span>
+      <strong>{{ data.performance.currentMonthCount }}</strong>
+      <small>{{ monthVariationLabel }}</small>
+    </div>
+    <a class="kpi-card kpi-alert" routerLink="/ocorrencias" [queryParams]="{ priority: 'URGENTE' }">
+      <span class="kpi-label">Alta / Urgente em aberto</span>
+      <strong>{{ data.performance.urgentOpen }}</strong>
+      <small>casos que requerem atenção →</small>
+    </a>
+    @if (auth.hasRole('ADMINISTRADOR')) {
+      <a class="kpi-card" routerLink="/alunos">
+        <span class="kpi-label">Comunidade ativa</span>
+        <strong>{{ data.performance.activeStudents }}</strong>
+        <small>aluno(s) · {{ data.performance.activeTeachers ?? 0 }} professor(es) →</small>
+      </a>
+    }
+  </section>
+
+  <!-- Gráfico por Mês + Distribuição por Prioridade -->
+  <section class="charts-grid">
+    <article class="panel month-chart-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Ocorrências por mês</h2>
+          <p>Evolução real nos últimos 6 meses. Clique em um mês para filtrar.</p>
+        </div>
+      </div>
+      <div class="month-chart" role="img" aria-label="Gráfico de ocorrências dos últimos 6 meses">
+        @for (point of data.byMonth; track point.month) {
+          <a class="month-col" routerLink="/ocorrencias" [queryParams]="monthQueryParams(point)" [title]="point.label + ': ' + point.total + ' ocorrência(s)'">
+            <span class="month-value">{{ point.total }}</span>
+            <div class="month-bar-track">
+              <div class="month-bar-fill" [class.zero]="point.total === 0" [style.height.%]="monthBarHeight(point.total)"></div>
+            </div>
+            <span class="month-label">{{ point.label }}</span>
+          </a>
+        }
+      </div>
+    </article>
+
+    <article class="panel priority-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Por prioridade</h2>
+          <p>Distribuição por nível de gravidade.</p>
+        </div>
+      </div>
+      <div class="category-list">
+        @for (prio of data.byPriority; track prio.priority) {
+          <a class="category-row clickable-stat" routerLink="/ocorrencias" [queryParams]="{ priority: prio.priority }">
+            <span>{{ priorityLabel(prio.priority) }}</span>
+            <strong>{{ prio.total }} <small>({{ percentOfTotal(prio.total) }}%)</small></strong>
+            <div class="bar priority-bar-{{ prio.priority.toLowerCase() }}">
+              <span [style.width.%]="percentOfTotal(prio.total)"></span>
+            </div>
+          </a>
+        }
+      </div>
+    </article>
   </section>
 
   <section class="dashboard-grid">
@@ -36,7 +121,7 @@
             <thead><tr><th>Protocolo</th><th>Aluno(s)</th><th>Categoria</th><th>Data</th><th>Status</th><th></th></tr></thead>
             <tbody>
               @for (item of data.recent; track item.id) {
-                <tr class="clickable-row" [routerLink]="['/ocorrencias', item.id]" [attr.aria-label]="'Abrir ocorrência ' + item.protocol">
+                <tr class="clickable-row" tabindex="0" [routerLink]="['/ocorrencias', item.id]" [attr.aria-label]="'Abrir ocorrência ' + item.protocol">
                   <td><strong>{{ item.protocol }}</strong><small>{{ priorityLabel(item.priority) }}</small></td>
                   <td>{{ item.students[0]?.name || '—' }} @if (item.students.length > 1) { <small>+{{ item.students.length - 1 }} aluno(s)</small> }</td>
                   <td>{{ item.categoryName }}</td>
@@ -57,8 +142,9 @@
         <div class="category-list">
           @for (category of data.byCategory; track category.name) {
             <a class="category-row clickable-stat" routerLink="/ocorrencias" [queryParams]="{ category: category.name }">
-              <span>{{ category.name }}</span><strong>{{ category.total }}</strong>
-              <div class="bar"><span [style.width.%]="data.totals.all ? (category.total / data.totals.all) * 100 : 0"></span></div>
+              <span>{{ category.name }}</span>
+              <strong>{{ category.total }} <small>({{ percentOfTotal(category.total) }}%)</small></strong>
+              <div class="bar"><span [style.width.%]="percentOfTotal(category.total)"></span></div>
             </a>
           } @empty { <div class="empty-state">Sem dados por categoria.</div> }
         </div>
@@ -67,10 +153,11 @@
       <article class="panel class-panel">
         <div class="panel-heading"><div><h2>Por turma</h2><p>Turmas com mais registros.</p></div></div>
         <div class="category-list">
-          @for (cls of data.byClass ?? []; track cls.name) {
+          @for (cls of data.byClass; track cls.name) {
             <a class="category-row clickable-stat" routerLink="/ocorrencias" [queryParams]="{ className: cls.name }">
-              <span>{{ cls.name }}</span><strong>{{ cls.total }}</strong>
-              <div class="bar class-bar"><span [style.width.%]="data.totals.all ? (cls.total / data.totals.all) * 100 : 0"></span></div>
+              <span>{{ cls.name }}</span>
+              <strong>{{ cls.total }} <small>({{ percentOfTotal(cls.total) }}%)</small></strong>
+              <div class="bar class-bar"><span [style.width.%]="percentOfTotal(cls.total)"></span></div>
             </a>
           } @empty { <div class="empty-state">Sem dados por turma.</div> }
         </div>

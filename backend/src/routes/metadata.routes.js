@@ -52,7 +52,7 @@ metadataRouter.post('/categories', allowRoles('ADMINISTRADOR'), async (req, res)
 metadataRouter.patch('/categories/:id', allowRoles('ADMINISTRADOR'), async (req, res) => {
   const id = Number(req.params.id);
   const active = req.body?.active;
-  if (!Number.isInteger(id) || typeof active !== 'boolean') throw httpError(400, 'Dados inválidos.');
+  if (!Number.isInteger(id) || id <= 0 || typeof active !== 'boolean') throw httpError(400, 'Dados inválidos.');
 
   const [[category]] = await pool.execute('SELECT id, name FROM categories WHERE id = ?', [id]);
   if (!category) throw httpError(404, 'Categoria não encontrada.');
@@ -89,7 +89,7 @@ metadataRouter.post('/locations', allowRoles('ADMINISTRADOR'), async (req, res) 
 metadataRouter.patch('/locations/:id', allowRoles('ADMINISTRADOR'), async (req, res) => {
   const id = Number(req.params.id);
   const active = req.body?.active;
-  if (!Number.isInteger(id) || typeof active !== 'boolean') throw httpError(400, 'Dados inválidos.');
+  if (!Number.isInteger(id) || id <= 0 || typeof active !== 'boolean') throw httpError(400, 'Dados inválidos.');
 
   const [[location]] = await pool.execute('SELECT id, name FROM locations WHERE id = ?', [id]);
   if (!location) throw httpError(404, 'Local não encontrado.');

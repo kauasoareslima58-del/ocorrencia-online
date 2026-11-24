@@ -1,4 +1,4 @@
-<section class="page-heading">
+<section class="page-heading no-print">
   <div><span class="eyebrow">Consulta</span><h1>Ocorrências</h1><p>Pesquise e acompanhe os registros autorizados para o seu perfil.</p></div>
   <div class="heading-actions">
     @if (auth.hasRole('ADMINISTRADOR')) {
@@ -10,10 +10,11 @@
   </div>
 </section>
 
-<section class="filter-card">
+<section class="filter-card no-print">
   <form (ngSubmit)="load(true)">
-    <div class="field field-search"><label for="search">Aluno, protocolo ou descrição</label><input id="search" name="search" [(ngModel)]="filters.search" placeholder="Digite para pesquisar"></div>
+    <div class="field field-search"><label for="search">Aluno, protocolo ou descrição</label><input id="search" name="search" [(ngModel)]="filters.search" placeholder="Digite nome do aluno, matrícula ou protocolo"></div>
     <div class="field"><label for="status">Status</label><select id="status" name="status" [(ngModel)]="filters.status"><option value="">Todos</option><option value="PENDENTE">Pendente</option><option value="EM_ANALISE">Em análise</option><option value="EM_ACOMPANHAMENTO">Em acompanhamento</option><option value="ENCERRADA">Encerrada</option></select></div>
+    <div class="field"><label for="priority">Prioridade</label><select id="priority" name="priority" [(ngModel)]="filters.priority"><option value="">Todas</option><option value="URGENTE">Urgente</option><option value="ALTA">Alta</option><option value="MEDIA">Média</option><option value="BAIXA">Baixa</option></select></div>
     <div class="field">
       <label for="category">Categoria</label>
       <select id="category" name="category" [(ngModel)]="filters.category">
@@ -29,20 +30,25 @@
   </form>
 </section>
 
-<section class="content-card">
+<section class="content-card no-print">
   <div class="card-heading">
     <div>
       <h2>Registros encontrados</h2>
       <p>{{ total }} ocorrência(s) no total</p>
     </div>
     @if (occurrences.length && auth.hasRole('PROFESSOR', 'ADMINISTRADOR')) {
-      <button type="button" class="button button-secondary" [disabled]="exporting" (click)="exportCsv()">
-        {{ exporting ? 'Exportando…' : '📥 Exportar CSV' }}
-      </button>
+      <div class="card-heading-actions">
+        <button type="button" class="button button-secondary" [disabled]="printing" (click)="printReport()">
+          {{ printing ? 'Preparando…' : '🖨️ Imprimir Relatório' }}
+        </button>
+        <button type="button" class="button button-secondary" [disabled]="exporting" (click)="exportCsv()">
+          {{ exporting ? 'Exportando…' : '📥 Exportar CSV' }}
+        </button>
+      </div>
     }
   </div>
 
-  @if (loading) { <div class="empty-state">Carregando ocorrências…</div> }
+  @if (loading) { <div class="loading-state"><span class="spinner" aria-hidden="true"></span> Carregando ocorrências…</div> }
   @else if (error) { <div class="empty-state error">{{ error }}</div> }
   @else if (occurrences.length) {
     <div class="table-wrap">
@@ -50,7 +56,7 @@
         <thead><tr><th>Protocolo</th><th>Aluno(s)</th><th>Categoria</th><th>Data e local</th><th>Responsável</th><th>Status</th><th></th></tr></thead>
         <tbody>
           @for (item of occurrences; track item.id) {
-            <tr class="clickable-row" [routerLink]="['/ocorrencias', item.id]" [attr.aria-label]="'Abrir ocorrência ' + item.protocol">
+            <tr class="clickable-row" tabindex="0" [routerLink]="['/ocorrencias', item.id]" [attr.aria-label]="'Abrir ocorrência ' + item.protocol">
               <td><strong>{{ item.protocol }}</strong><small>Prioridade {{ priorityLabel(item.priority).toLowerCase() }}</small></td>
               <td><strong>{{ item.students[0]?.name || '—' }}</strong><small>{{ item.students[0]?.className || '' }} @if (item.students.length > 1) { · +{{ item.students.length - 1 }} }</small></td>
               <td>{{ item.categoryName }}</td>
@@ -79,16 +85,63 @@
   } @else { <div class="empty-state"><strong>Nenhum registro encontrado.</strong><span>Altere os filtros e tente novamente.</span></div> }
 </section>
 
+<!-- Relatório Consolidado para Impressão -->
+<section class="print-report-sheet">
+  <div class="print-header">
+    <div class="print-emblem">
+      <img src="images/logo-monsenhor-bicudo.png" alt="Logo da Escola">
+    </div>
+    <div class="print-title">
+      <span>GOVERNO DO ESTADO DE SÃO PAULO — SECRETARIA DA EDUCAÇÃO</span>
+      <h2>E.E. MONSENHOR BICUDO</h2>
+      <strong>RELATÓRIO DE OCORRÊNCIAS ESCOLARES</strong>
+    </div>
+  </div>
+
+  <div class="print-summary">
+    <div><strong>Filtros aplicados:</strong> {{ activeFilterSummary }}</div>
+    <div><strong>Registros no relatório:</strong> {{ printItems.length }} (Total encontrado: {{ total }})</div>
+    <div><strong>Emitido por:</strong> {{ auth.currentUser?.name }} · {{ formatDateTime(printGeneratedAt) }}</div>
+  </div>
+
+  <table class="print-table">
+    <thead>
+      <tr>
+        <th>Protocolo</th>
+        <th>Data/Hora</th>
+        <th>Aluno(s) / Turma</th>
+        <th>Categoria / Local</th>
+        <th>Prioridade</th>
+        <th>Status</th>
+        <th>Responsável</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of printItems; track item.id) {
+        <tr>
+          <td><strong>{{ item.protocol }}</strong></td>
+          <td>{{ formatDate(item.occurrenceDate) }}<br><small>{{ item.occurrenceTime.slice(0, 5) }}</small></td>
+          <td>{{ studentNamesList(item) }}</td>
+          <td>{{ item.categoryName }}<br><small>{{ item.locationName }}</small></td>
+          <td>{{ priorityLabel(item.priority) }}</td>
+          <td>{{ statusLabel(item.status) }}</td>
+          <td>{{ item.professorName }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</section>
+
 @if (showMetadataModal && auth.hasRole('ADMINISTRADOR')) {
-  <div class="modal-backdrop">
-    <div class="modal-card">
+  <div class="modal-backdrop no-print" (click)="closeMetadataModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Gerenciar Categorias e Locais</h3>
-        <button type="button" class="close-btn" (click)="closeMetadataModal()">✕</button>
+        <button type="button" class="close-btn" aria-label="Fechar" (click)="closeMetadataModal()">✕</button>
       </div>
 
-      @if (metaError) { <p class="modal-error">{{ metaError }}</p> }
-      @if (metaSuccess) { <p class="modal-success">{{ metaSuccess }}</p> }
+      @if (metaError) { <p class="modal-error" role="alert">{{ metaError }}</p> }
+      @if (metaSuccess) { <p class="modal-success" role="status">{{ metaSuccess }}</p> }
 
       <div class="meta-columns">
         <div class="meta-col">

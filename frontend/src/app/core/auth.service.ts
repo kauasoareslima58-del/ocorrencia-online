@@ -19,12 +19,25 @@ export class AuthService {
   }
 
   get token(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
+    const raw = localStorage.getItem(TOKEN_KEY);
+    if (!raw || this.isTokenExpired(raw)) {
+      if (raw) this.clearStorage();
+      return null;
+    }
+    return raw;
+  }
+
+  get isAuthenticated(): boolean {
+    return Boolean(this.token && this.currentUser);
   }
 
   login(email: string, password: string) {
     return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/login`, { email, password }).pipe(
       tap(({ token, user }) => {
+        if (!ALLOWED_ROLES.includes(user.role)) {
+          this.logout();
+          return;
+        }
         localStorage.setItem(TOKEN_KEY, token);
         localStorage.setItem(USER_KEY, JSON.stringify(user));
         this.userSubject.next(user);
@@ -32,9 +45,26 @@ export class AuthService {
     );
   }
 
+  refreshSession() {
+    return this.http.get<{ user: User }>(`${environment.apiUrl}/auth/me`).pipe(
+      tap(({ user }) => {
+        if (user && ALLOWED_ROLES.includes(user.role)) {
+          localStorage.setItem(USER_KEY, JSON.stringify(user));
+          this.userSubject.next(user);
+        } else {
+          this.logout();
+        }
+      })
+    );
+  }
+
+  updateToken(token: string): void {
+    if (!token) return;
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+
   logout(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    this.clearStorage();
     this.userSubject.next(null);
   }
 
@@ -42,25 +72,41 @@ export class AuthService {
     return !!this.currentUser && roles.includes(this.currentUser.role);
   }
 
+  private clearStorage(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+  }
+
+  private isTokenExpired(token: string): boolean {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return true;
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+      const payload = JSON.parse(atob(padded)) as { exp?: number };
+      if (typeof payload.exp !== 'number') return false;
+      return Date.now() >= payload.exp * 1000;
+    } catch {
+      return true;
+    }
+  }
+
   private readUser(): User | null {
     try {
       const value = localStorage.getItem(USER_KEY);
       const token = localStorage.getItem(TOKEN_KEY);
-      if (!value || !token) {
-        localStorage.removeItem(USER_KEY);
-        localStorage.removeItem(TOKEN_KEY);
+      if (!value || !token || this.isTokenExpired(token)) {
+        this.clearStorage();
         return null;
       }
       const parsed = JSON.parse(value) as User;
       if (!parsed || !ALLOWED_ROLES.includes(parsed.role)) {
-        localStorage.removeItem(USER_KEY);
-        localStorage.removeItem(TOKEN_KEY);
+        this.clearStorage();
         return null;
       }
       return parsed;
     } catch {
-      localStorage.removeItem(USER_KEY);
-      localStorage.removeItem(TOKEN_KEY);
+      this.clearStorage();
       return null;
     }
   }

@@ -5,7 +5,7 @@
 
 <div class="responsible-notice"><span>{{ auth.currentUser?.name?.charAt(0) }}</span><p>Esta ocorrência será registrada por <strong>{{ auth.currentUser?.name }}</strong> e o nome ficará salvo no histórico.</p></div>
 
-@if (loading) { <div class="state-card">Carregando formulário…</div> }
+@if (loading) { <div class="state-card loading-state"><span class="spinner" aria-hidden="true"></span> Carregando formulário…</div> }
 @else {
   <form class="form-layout" (ngSubmit)="submit()" #occurrenceForm="ngForm">
     <section class="form-card student-card">
@@ -27,13 +27,17 @@
         </div>
       }
       <div class="student-list">
-        @for (student of students; track student.id) {
-          <label class="student-option" [class.selected]="isSelected(student.id)">
-            <input type="checkbox" [checked]="isSelected(student.id)" (change)="toggleStudent(student, $any($event.target).checked)">
-            <span class="student-avatar">{{ student.name.charAt(0) }}</span>
-            <span><strong>{{ student.name }}</strong><small>{{ student.registration }} · {{ student.className }}</small></span>
-          </label>
-        } @empty { <div class="empty-state">Nenhum aluno encontrado.</div> }
+        @if (studentsLoading) {
+          <div class="loading-state"><span class="spinner" aria-hidden="true"></span> Buscando alunos…</div>
+        } @else {
+          @for (student of students; track student.id) {
+            <label class="student-option" [class.selected]="isSelected(student.id)">
+              <input type="checkbox" [checked]="isSelected(student.id)" (change)="toggleStudent(student, $any($event.target).checked)">
+              <span class="student-avatar">{{ student.name.charAt(0) }}</span>
+              <span><strong>{{ student.name }}</strong><small>{{ student.registration }} · {{ student.className }}</small></span>
+            </label>
+          } @empty { <div class="empty-state">Nenhum aluno encontrado.</div> }
+        }
       </div>
       <p class="selection-count">{{ selectedStudentIds.length }} aluno(s) selecionado(s)</p>
     </section>

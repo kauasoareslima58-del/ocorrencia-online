@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -6,7 +6,7 @@ import { Subscription, filter } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { AppNotification } from '../core/models';
-import { formatDateTime, priorityLabel, roleLabel, statusLabel } from '../core/view-helpers';
+import { formatDateTime, isStrongPassword, priorityLabel, roleLabel, statusLabel } from '../core/view-helpers';
 
 @Component({
   selector: 'app-shell',
@@ -23,6 +23,7 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   menuOpen = false;
   showPasswordModal = false;
+  showPasswords = false;
   passwordSaving = false;
   passwordError = '';
   passwordSuccess = '';
@@ -45,13 +46,27 @@ export class ShellComponent implements OnInit, OnDestroy {
   readonly statusLabel = statusLabel;
   readonly formatDateTime = formatDateTime;
 
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.showPasswordModal) {
+      this.closePasswordModal();
+    } else if (this.notificationsOpen) {
+      this.closeNotifications();
+    } else if (this.menuOpen) {
+      this.closeMenu();
+    }
+  }
+
   ngOnInit(): void {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       this.browserNotificationPermission = Notification.permission;
     }
 
+    // Valida a sessão junto à API e sincroniza nome/perfil do usuário ativo
+    this.auth.refreshSession().subscribe({ error: () => {} });
+
     this.loadNotifications();
-    this.pollTimer = setInterval(() => this.loadNotifications(), 12000);
+    this.pollTimer = setInterval(() => this.loadNotifications(), 15000);
 
     this.routerSub = this.router.events
       .pipe(filter((ev) => ev instanceof NavigationEnd))
@@ -70,7 +85,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   }
 
   loadNotifications(): void {
-    if (!this.auth.currentUser) return;
+    if (!this.auth.isAuthenticated) return;
     this.api.getNotifications().subscribe({
       next: (res) => {
         const incoming = res.items || [];
@@ -90,7 +105,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       error: () => {
-        // Ignore transient polling errors silently
+        // Ignora falhas temporárias de polling
       }
     });
   }
@@ -168,7 +183,7 @@ export class ShellComponent implements OnInit, OnDestroy {
             browserNotif.close();
           };
         } catch {
-          // Ignore browser notification errors
+          // Ignora erro de notificação do navegador
         }
       }
     }
@@ -183,8 +198,8 @@ export class ShellComponent implements OnInit, OnDestroy {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12);
       gain.gain.setValueAtTime(0.08, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
       osc.connect(gain);
@@ -192,7 +207,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       osc.start();
       osc.stop(ctx.currentTime + 0.4);
     } catch {
-      // AudioContext may be blocked until first user interaction
+      // AudioContext pode estar bloqueado até interação do usuário
     }
   }
 
@@ -207,6 +222,7 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   openPasswordModal(): void {
     this.showPasswordModal = true;
+    this.showPasswords = false;
     this.passwordError = '';
     this.passwordSuccess = '';
     this.passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
@@ -230,8 +246,8 @@ export class ShellComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       return;
     }
-    if (this.passwordForm.newPassword.length < 8) {
-      this.passwordError = 'A nova senha deve ter no mínimo 8 caracteres com maiúscula, minúscula, número e símbolo.';
+    if (!isStrongPassword(this.passwordForm.newPassword)) {
+      this.passwordError = 'A nova senha deve ter entre 8 e 72 caracteres, com maiúscula, minúscula, número e símbolo.';
       this.cdr.markForCheck();
       return;
     }
@@ -243,6 +259,9 @@ export class ShellComponent implements OnInit, OnDestroy {
 
     this.api.changePassword(this.passwordForm.currentPassword, this.passwordForm.newPassword).subscribe({
       next: (res) => {
+        if (res.token) {
+          this.auth.updateToken(res.token);
+        }
         this.passwordSuccess = res.message || 'Senha alterada com sucesso!';
         this.passwordSaving = false;
         this.passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };

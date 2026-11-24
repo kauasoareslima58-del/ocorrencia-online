@@ -1,6 +1,6 @@
 {
   "name": "ocorrencia-online-api",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,8 +10,11 @@
     "db:setup": "node src/scripts/setup-db.js && node src/scripts/seed.js",
     "db:schema": "node src/scripts/setup-db.js",
     "db:seed": "node src/scripts/seed.js",
+    "admin:create": "node src/scripts/create-admin.js",
     "backup": "node src/scripts/backup.js",
-    "check": "node --check src/app.js && node --check src/server.js && node --check src/config/env.js && node --check src/config/classes.js && node --check src/routes/metadata.routes.js && node --check src/routes/occurrences.routes.js && node --check src/routes/students.routes.js && node --check src/routes/teachers.routes.js && node --check src/scripts/check-env.js && node --check src/scripts/setup-db.js && node --check src/scripts/seed.js"
+    "restore": "node src/scripts/restore.js",
+    "test:integration": "node --test src/tests/integration.test.js",
+    "check": "node --check src/app.js && node --check src/server.js && node --check src/config/env.js && node --check src/config/db.js && node --check src/config/classes.js && node --check src/middleware/auth.js && node --check src/middleware/error-handler.js && node --check src/utils/validators.js && node --check src/utils/audit.js && node --check src/utils/occurrence-queries.js && node --check src/routes/auth.routes.js && node --check src/routes/dashboard.routes.js && node --check src/routes/metadata.routes.js && node --check src/routes/occurrences.routes.js && node --check src/routes/students.routes.js && node --check src/routes/teachers.routes.js && node --check src/routes/audit.routes.js && node --check src/routes/notifications.routes.js && node --check src/scripts/check-env.js && node --check src/scripts/setup-db.js && node --check src/scripts/seed.js && node --check src/scripts/create-admin.js && node --check src/scripts/backup.js && node --check src/scripts/restore.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

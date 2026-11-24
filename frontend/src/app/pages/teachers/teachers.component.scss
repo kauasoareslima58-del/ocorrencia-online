@@ -14,8 +14,10 @@
 .message { margin-bottom: 1rem; padding: .8rem 1rem; border-radius: 9px; font-size: .84rem; font-weight: 700; }
 .message.error { color: #9e2020; border: 1px solid #f1cccc; background: #fff0f0; }
 .message.success { color: #176446; border: 1px solid #bee5d4; background: #ecf9f4; }
-.card-heading { min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.heading-search { width: min(320px, 100%); }
+.card-heading { min-height: 74px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+.heading-filters { display: flex; gap: .6rem; width: min(480px, 100%); }
+.heading-filters select { width: 190px; flex: 0 0 auto; }
+.heading-filters input { flex: 1; min-width: 0; }
 .access-status { display: inline-flex; padding: .34rem .6rem; border-radius: 999px; color: #176849; background: #e5f6ee; font-size: .72rem; font-weight: 850; }
 .access-status.inactive { color: #7c4e4e; background: #f3eaea; }
 
@@ -53,5 +55,7 @@
   .form-actions { flex-direction: column-reverse; }
   .form-actions .button { width: 100%; }
   .card-heading { flex-direction: column; align-items: stretch; }
-  .actions-cell { flex-direction: column; }
+  .heading-filters { flex-direction: column; width: 100%; }
+  .heading-filters select { width: 100%; }
+  .actions-cell { flex-wrap: wrap; }
 }

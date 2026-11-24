@@ -1,27 +1,11 @@
 import { Router } from 'express';
-import { pool } from '../config/db.js';
+import { ensureRuntimeSchema, pool } from '../config/db.js';
 import { allowRoles } from '../middleware/auth.js';
 
 export const notificationsRouter = Router();
 
-let tableEnsured = false;
-
-async function ensureNotificationReadsTable() {
-  if (tableEnsured) return;
-  await pool.execute(`
-    CREATE TABLE IF NOT EXISTS notification_reads (
-      user_id INT UNSIGNED NOT NULL,
-      notification_key VARCHAR(80) NOT NULL,
-      read_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (user_id, notification_key),
-      CONSTRAINT fk_notification_reads_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB
-  `);
-  tableEnsured = true;
-}
-
 notificationsRouter.get('/', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async (req, res) => {
-  await ensureNotificationReadsTable();
+  await ensureRuntimeSchema();
   const userId = req.user.id;
 
   if (req.user.role === 'ADMINISTRADOR') {
@@ -67,7 +51,7 @@ notificationsRouter.get('/', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async (re
          LIMIT 15`
       ),
       pool.execute(`SELECT COUNT(*) AS total FROM occurrences WHERE status = 'PENDENTE'`),
-      pool.execute(`SELECT notification_key AS notificationKey FROM notification_reads WHERE user_id = ?`, [userId])
+      pool.execute('SELECT notification_key AS notificationKey FROM notification_reads WHERE user_id = ?', [userId])
     ]);
 
     const [occRows] = occResult;
@@ -116,14 +100,9 @@ notificationsRouter.get('/', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async (re
     const unreadCount = items.filter((item) => !item.read).length;
     const pendingCount = Number(pendingRows[0]?.total ?? 0);
 
-    return res.json({
-      items,
-      unreadCount,
-      pendingCount
-    });
+    return res.json({ items, unreadCount, pendingCount });
   }
 
-  // PROFESSOR notifications: updates registered by ADMINISTRADOR on occurrences created by this professor
   const [updResult, pendingResult, readsResult] = await Promise.all([
     pool.execute(
       `SELECT up.id AS updateId,
@@ -147,7 +126,7 @@ notificationsRouter.get('/', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async (re
       [userId]
     ),
     pool.execute(`SELECT COUNT(*) AS total FROM occurrences WHERE created_by = ? AND status = 'PENDENTE'`, [userId]),
-    pool.execute(`SELECT notification_key AS notificationKey FROM notification_reads WHERE user_id = ?`, [userId])
+    pool.execute('SELECT notification_key AS notificationKey FROM notification_reads WHERE user_id = ?', [userId])
   ]);
 
   const [updRows] = updResult;
@@ -175,15 +154,11 @@ notificationsRouter.get('/', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async (re
   const unreadCount = items.filter((item) => !item.read).length;
   const pendingCount = Number(pendingRows[0]?.total ?? 0);
 
-  return res.json({
-    items,
-    unreadCount,
-    pendingCount
-  });
+  return res.json({ items, unreadCount, pendingCount });
 });
 
 notificationsRouter.post('/read', allowRoles('ADMINISTRADOR', 'PROFESSOR'), async (req, res) => {
-  await ensureNotificationReadsTable();
+  await ensureRuntimeSchema();
   const userId = req.user.id;
   const rawKeys = Array.isArray(req.body?.keys)
     ? req.body.keys
@@ -211,4 +186,3 @@ notificationsRouter.post('/read', allowRoles('ADMINISTRADOR', 'PROFESSOR'), asyn
 
   return res.json({ message: 'Notificações marcadas como lidas.' });
 });
-

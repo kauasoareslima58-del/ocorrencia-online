@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../config/db.js';
 import { allowRoles } from '../middleware/auth.js';
+import { isValidDate } from '../utils/validators.js';
 
 export const auditRouter = Router();
 auditRouter.use(allowRoles('ADMINISTRADOR'));
@@ -28,11 +29,11 @@ auditRouter.get('/', async (req, res) => {
     where.push('a.entity = ?');
     params.push(entity);
   }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+  if (isValidDate(startDate)) {
     where.push('DATE(a.created_at) >= ?');
     params.push(startDate);
   }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+  if (isValidDate(endDate)) {
     where.push('DATE(a.created_at) <= ?');
     params.push(endDate);
   }

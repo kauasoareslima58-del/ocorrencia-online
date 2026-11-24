@@ -1,6 +1,6 @@
 {
   "name": "ocorrencia-online-monsenhor-bicudo",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,6 +11,12 @@
     "env:create": "node scripts/create-env.js",
     "env:check": "npm run env:check --prefix backend",
     "db:setup": "npm run db:setup --prefix backend",
+    "db:schema": "npm run db:schema --prefix backend",
+    "db:seed": "npm run db:seed --prefix backend",
+    "admin:create": "npm run admin:create --prefix backend",
+    "backup": "npm run backup --prefix backend",
+    "restore": "npm run restore --prefix backend",
+    "test:integration": "npm run test:integration --prefix backend",
     "start:backend": "npm start --prefix backend",
     "start:frontend": "npm start --prefix frontend",
     "check": "npm run check --prefix backend && npm run build --prefix frontend"

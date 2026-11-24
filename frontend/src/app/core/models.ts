@@ -7,12 +7,16 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  studentId?: number | null;
 }
 
 export interface LoginResponse {
   token: string;
   user: User;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+  token?: string;
 }
 
 export interface Student {
@@ -74,14 +78,38 @@ export interface PaginatedResponse<T> {
 export interface BatchImportResponse {
   message: string;
   successCount: number;
+  updatedCount?: number;
+  duplicateCount?: number;
+  errorCount?: number;
+  duplicates?: string[];
   errors: string[];
+}
+
+export interface DashboardMonthPoint {
+  month: string;
+  label: string;
+  total: number;
+}
+
+export interface DashboardPerformance {
+  resolutionRate: number;
+  avgResolutionHours: number | null;
+  currentMonthCount: number;
+  previousMonthCount: number;
+  urgentOpen: number;
+  activeStudents: number;
+  activeTeachers: number | null;
 }
 
 export interface DashboardStats {
   totals: { all: number; pending: number; analysis: number; monitoring: number; closed: number };
+  byMonth: DashboardMonthPoint[];
   byCategory: Array<{ name: string; total: number }>;
-  byClass?: Array<{ name: string; total: number }>;
+  byClass: Array<{ name: string; total: number }>;
+  byPriority: Array<{ priority: Priority; total: number }>;
+  performance: DashboardPerformance;
   recent: Occurrence[];
+  updatedAt?: string;
 }
 
 export interface AuditLog {

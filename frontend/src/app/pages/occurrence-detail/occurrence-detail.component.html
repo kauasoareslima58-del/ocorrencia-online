@@ -5,7 +5,7 @@
   }
 </section>
 
-@if (loading) { <div class="state-card no-print">Carregando ocorrência…</div> }
+@if (loading) { <div class="state-card loading-state no-print"><span class="spinner" aria-hidden="true"></span> Carregando ocorrência…</div> }
 @else if (error && !occurrence) {
   <div class="state-card error no-print">
     <strong>Não foi possível abrir a ocorrência.</strong>
@@ -82,7 +82,7 @@
       </section>
 
       <section class="detail-card">
-        <div class="card-title"><h2>Linha do tempo</h2><span>Alterações e providências</span></div>
+        <div class="card-title"><h2>Linha do tempo</h2><span>Histórico completo de alterações e providências</span></div>
         <div class="timeline">
           @for (update of item.updates ?? []; track update.id) {
             <article class="timeline-item">
@@ -149,10 +149,20 @@
             <label for="actionTaken">Providência tomada</label>
             <textarea id="actionTaken" name="actionTaken" rows="3" maxlength="1000" [(ngModel)]="updateModel.actionTaken" placeholder="Encaminhamento ou medida pedagógica"></textarea>
 
-            @if (error) { <p class="form-message error">{{ error }}</p> }
-            @if (success) { <p class="form-message success">{{ success }}</p> }
+            @if (error) { <p class="form-message error" role="alert">{{ error }}</p> }
+            @if (success) { <p class="form-message success" role="status">{{ success }}</p> }
             <button class="button button-primary full" type="submit" [disabled]="saving">{{ saving ? 'Salvando…' : 'Salvar atualização' }}</button>
           </form>
+        </section>
+      } @else if (auth.hasRole('PROFESSOR') && item.status === 'ENCERRADA') {
+        <section class="detail-card update-card">
+          <div class="card-title">
+            <h2>Ocorrência encerrada</h2>
+            <span>Somente leitura</span>
+          </div>
+          <p style="margin:0;padding:1rem;color:var(--muted);font-size:.84rem;line-height:1.5;">
+            Esta ocorrência foi encerrada. Apenas a Coordenação pode reabri-la ou registrar novas providências.
+          </p>
         </section>
       }
     </aside>
@@ -219,6 +229,9 @@
           @for (u of item.updates ?? []; track u.id) {
             <div class="print-update-item">
               <span class="update-meta"><strong>{{ u.authorName }}</strong> ({{ roleLabel(u.authorRole) }}) — {{ formatDateTime(u.createdAt) }}:</span>
+              @if (u.previousStatus && u.newStatus && u.previousStatus !== u.newStatus) {
+                <p><b>Status:</b> {{ statusLabel(u.previousStatus) }} → {{ statusLabel(u.newStatus) }}</p>
+              }
               @if (u.observation) { <p><b>Observação:</b> {{ u.observation }}</p> }
               @if (u.actionTaken) { <p><b>Providência:</b> {{ u.actionTaken }}</p> }
             </div>

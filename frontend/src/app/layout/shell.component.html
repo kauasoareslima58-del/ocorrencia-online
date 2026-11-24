@@ -80,11 +80,11 @@
     </div>
   </aside>
 
-  @if (menuOpen) { <button class="backdrop" aria-label="Fechar menu" (click)="closeMenu()"></button> }
+  @if (menuOpen) { <button type="button" class="backdrop" aria-label="Fechar menu" (click)="closeMenu()"></button> }
 
   <section class="workspace">
     <header class="topbar">
-      <button class="menu-button" aria-label="Abrir menu" (click)="menuOpen = !menuOpen">☰</button>
+      <button type="button" class="menu-button" [attr.aria-expanded]="menuOpen" aria-label="Abrir menu" (click)="menuOpen = !menuOpen">☰</button>
       <div class="topbar-title"><strong>E.E. Monsenhor Bicudo</strong><span>Sistema de ocorrências escolares</span></div>
       @if (auth.currentUser; as user) {
         <div class="user-menu">
@@ -166,8 +166,8 @@
 
           <span class="avatar">{{ user.name.charAt(0) }}</span>
           <span class="user-copy"><strong>{{ user.name }}</strong><small>{{ roleLabel(user.role) }}</small></span>
-          <button class="action-btn-subtle" (click)="openPasswordModal()" title="Alterar minha senha">Alterar Senha</button>
-          <button class="logout-button" (click)="logout()" title="Sair">Sair</button>
+          <button type="button" class="action-btn-subtle" (click)="openPasswordModal()" title="Alterar minha senha">Alterar Senha</button>
+          <button type="button" class="logout-button" (click)="logout()" title="Sair">Sair</button>
         </div>
       }
     </header>
@@ -196,28 +196,33 @@
 }
 
 @if (showPasswordModal) {
-  <div class="modal-backdrop">
-    <div class="modal-card">
+  <div class="modal-backdrop" (click)="closePasswordModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Alterar Minha Senha</h3>
-        <button class="close-btn" (click)="closePasswordModal()">✕</button>
+        <button type="button" class="close-btn" aria-label="Fechar" (click)="closePasswordModal()">✕</button>
       </div>
 
       <form (ngSubmit)="submitPasswordChange()" #passForm="ngForm">
         <label for="currentPassword">Senha Atual</label>
-        <input id="currentPassword" name="currentPassword" type="password" required [(ngModel)]="passwordForm.currentPassword" placeholder="Digite sua senha atual">
+        <input id="currentPassword" name="currentPassword" [type]="showPasswords ? 'text' : 'password'" required [(ngModel)]="passwordForm.currentPassword" placeholder="Digite sua senha atual">
 
         <label for="newPassword">Nova Senha</label>
-        <input id="newPassword" name="newPassword" type="password" required minlength="8" [(ngModel)]="passwordForm.newPassword" placeholder="Mínimo 8 caracteres (A-Z, a-z, 0-9, símbolo)">
+        <input id="newPassword" name="newPassword" [type]="showPasswords ? 'text' : 'password'" required minlength="8" maxlength="72" [(ngModel)]="passwordForm.newPassword" placeholder="Mínimo 8 caracteres (A-Z, a-z, 0-9, símbolo)">
 
         <label for="confirmPassword">Confirmar Nova Senha</label>
-        <input id="confirmPassword" name="confirmPassword" type="password" required minlength="8" [(ngModel)]="passwordForm.confirmPassword" placeholder="Confirme a nova senha">
+        <input id="confirmPassword" name="confirmPassword" [type]="showPasswords ? 'text' : 'password'" required minlength="8" maxlength="72" [(ngModel)]="passwordForm.confirmPassword" placeholder="Confirme a nova senha">
+
+        <label style="display:flex;align-items:center;gap:.45rem;font-weight:600;cursor:pointer;margin-top:.1rem;">
+          <input type="checkbox" name="showPasswords" [(ngModel)]="showPasswords" style="width:16px;height:16px;min-height:0;">
+          Exibir senhas
+        </label>
 
         @if (passwordError) {
-          <p class="modal-error">{{ passwordError }}</p>
+          <p class="modal-error" role="alert">{{ passwordError }}</p>
         }
         @if (passwordSuccess) {
-          <p class="modal-success">{{ passwordSuccess }}</p>
+          <p class="modal-success" role="status">{{ passwordSuccess }}</p>
         }
 
         <div class="modal-actions">

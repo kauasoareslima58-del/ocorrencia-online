@@ -1,11 +1,12 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, HostListener, inject, OnDestroy, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { NamedItem, Occurrence, OccurrenceStatus } from '../../core/models';
-import { classLabel, formatDate, priorityLabel, statusLabel } from '../../core/view-helpers';
+import { NamedItem, Occurrence, OccurrenceStatus, Priority } from '../../core/models';
+import { classLabel, formatDate, formatDateTime, priorityLabel, statusLabel } from '../../core/view-helpers';
 
 @Component({
   selector: 'app-occurrences',
@@ -14,17 +15,30 @@ import { classLabel, formatDate, priorityLabel, statusLabel } from '../../core/v
   templateUrl: './occurrences.component.html',
   styleUrl: './occurrences.component.scss'
 })
-export class OccurrencesComponent implements OnInit {
+export class OccurrencesComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   readonly auth = inject(AuthService);
+
   occurrences: Occurrence[] = [];
+  printItems: Occurrence[] = [];
+  printGeneratedAt = '';
   categories: NamedItem[] = [];
   classes: string[] = [];
   loading = true;
   exporting = false;
+  printing = false;
   error = '';
-  filters = { search: '', status: '', category: '', className: '', startDate: '', endDate: '', professor: '' };
+  filters = {
+    search: '',
+    status: '',
+    priority: '',
+    category: '',
+    className: '',
+    startDate: '',
+    endDate: '',
+    professor: ''
+  };
 
   // Pagination
   page = 1;
@@ -42,10 +56,20 @@ export class OccurrencesComponent implements OnInit {
   metaError = '';
   metaSuccess = '';
 
+  private querySub: Subscription | null = null;
+
   readonly statusLabel = statusLabel;
   readonly priorityLabel = priorityLabel;
   readonly formatDate = formatDate;
+  readonly formatDateTime = formatDateTime;
   readonly classLabel = classLabel;
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.showMetadataModal) {
+      this.closeMetadataModal();
+    }
+  }
 
   get pages(): number[] {
     const pages: number[] = [];
@@ -57,13 +81,38 @@ export class OccurrencesComponent implements OnInit {
     return pages;
   }
 
+  get activeFilterSummary(): string {
+    const parts: string[] = [];
+    if (this.filters.search) parts.push(`Busca: "${this.filters.search}"`);
+    if (this.filters.status) parts.push(`Status: ${this.statusLabel(this.filters.status as OccurrenceStatus)}`);
+    if (this.filters.priority) parts.push(`Prioridade: ${this.priorityLabel(this.filters.priority as Priority)}`);
+    if (this.filters.category) parts.push(`Categoria: ${this.filters.category}`);
+    if (this.filters.className) parts.push(`Turma: ${this.filters.className}`);
+    if (this.filters.professor) parts.push(`Professor: ${this.filters.professor}`);
+    if (this.filters.startDate) parts.push(`De: ${this.formatDate(this.filters.startDate)}`);
+    if (this.filters.endDate) parts.push(`Até: ${this.formatDate(this.filters.endDate)}`);
+    return parts.length ? parts.join(' · ') : 'Todos os registros autorizados';
+  }
+
   ngOnInit(): void {
-    const qp = this.route.snapshot.queryParamMap;
-    if (qp.get('status')) this.filters.status = qp.get('status') ?? '';
-    if (qp.get('category')) this.filters.category = qp.get('category') ?? '';
-    if (qp.get('className')) this.filters.className = qp.get('className') ?? '';
     this.loadMetadata();
-    this.load();
+    this.querySub = this.route.queryParamMap.subscribe((qp) => {
+      this.filters = {
+        search: qp.get('search') ?? '',
+        status: qp.get('status') ?? '',
+        priority: qp.get('priority') ?? '',
+        category: qp.get('category') ?? '',
+        className: qp.get('className') ?? '',
+        startDate: qp.get('startDate') ?? '',
+        endDate: qp.get('endDate') ?? '',
+        professor: qp.get('professor') ?? ''
+      };
+      this.load(true);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.querySub?.unsubscribe();
   }
 
   loadMetadata(): void {
@@ -172,7 +221,7 @@ export class OccurrencesComponent implements OnInit {
   }
 
   clearFilters(): void {
-    this.filters = { search: '', status: '', category: '', className: '', startDate: '', endDate: '', professor: '' };
+    this.filters = { search: '', status: '', priority: '', category: '', className: '', startDate: '', endDate: '', professor: '' };
     this.load(true);
   }
 
@@ -182,13 +231,30 @@ export class OccurrencesComponent implements OnInit {
     this.load();
   }
 
+  printReport(): void {
+    if (this.printing || !this.occurrences.length) return;
+    this.printing = true;
+    this.api.getOccurrences({ ...this.filters, page: 1, limit: 500 }).subscribe({
+      next: (res) => {
+        this.printItems = res.items || [];
+        this.printGeneratedAt = new Date().toISOString();
+        this.printing = false;
+        setTimeout(() => window.print(), 60);
+      },
+      error: () => {
+        this.printing = false;
+        this.error = 'Não foi possível preparar o relatório para impressão.';
+      }
+    });
+  }
+
   exportCsv(): void {
     if (this.exporting || !this.occurrences.length) return;
     this.exporting = true;
     const queryParams: Record<string, string | number> = {
       ...this.filters,
       page: 1,
-      limit: 100
+      limit: 500
     };
     this.api.getOccurrences(queryParams).subscribe({
       next: (res) => {
@@ -212,7 +278,7 @@ export class OccurrencesComponent implements OnInit {
               studentsClasses,
               item.professorName,
               item.description.replace(/\r?\n/g, ' ')
-            ].map((val) => `"${String(val ?? '').replace(/"/g, '""')}"`).join(';');
+            ].map((val) => this.csvCell(val)).join(';');
           })
         ];
         const blob = new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
@@ -225,8 +291,21 @@ export class OccurrencesComponent implements OnInit {
       },
       error: () => {
         this.exporting = false;
+        this.error = 'Não foi possível exportar o arquivo CSV.';
       }
     });
+  }
+
+  private csvCell(raw: unknown): string {
+    let text = String(raw ?? '');
+    if (/^[=+\-@\t\r]/.test(text)) {
+      text = `'${text}`;
+    }
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  studentNamesList(item: Occurrence): string {
+    return item.students.map((s) => `${s.name} (${s.className})`).join(', ') || '—';
   }
 
   statusClass(status: OccurrenceStatus): string { return `status-${status.toLowerCase()}`; }

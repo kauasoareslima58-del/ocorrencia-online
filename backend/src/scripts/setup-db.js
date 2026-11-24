@@ -1,17 +1,20 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import mysql from 'mysql2/promise';
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
+dotenv.config();
+dotenv.config({ path: resolve(currentDir, '../../.env') });
+
 const sql = await readFile(resolve(currentDir, '../../database/schema.sql'), 'utf8');
 const required = ['DB_HOST', 'DB_USER', 'DB_NAME'];
 const missing = required.filter((key) => !String(process.env[key] ?? '').trim());
 
 if (missing.length) {
   console.error(`Não foi possível preparar o banco: variáveis ausentes: ${missing.join(', ')}.`);
-  console.error('Crie o arquivo .env a partir do .env.example e tente novamente.');
+  console.error('Crie o arquivo backend/.env a partir do .env.example e tente novamente.');
   process.exit(1);
 }
 
@@ -29,12 +32,64 @@ const connection = await mysql.createConnection({
   multipleStatements: true
 });
 
+async function ensureColumn(tableName, columnName, definitionSql) {
+  const [cols] = await connection.execute(
+    `SELECT COLUMN_NAME
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?
+     LIMIT 1`,
+    [database, tableName, columnName]
+  );
+  if (!cols.length) {
+    await connection.query(`ALTER TABLE \`${tableName}\` ADD COLUMN ${definitionSql}`);
+    console.log(`- Coluna adicionada com segurança: ${tableName}.${columnName}`);
+  }
+}
+
+async function ensureIndex(tableName, indexName, columnsSql) {
+  const [indexes] = await connection.execute(
+    `SELECT INDEX_NAME
+     FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ?
+     LIMIT 1`,
+    [database, tableName, indexName]
+  );
+  if (!indexes.length) {
+    await connection.query(`ALTER TABLE \`${tableName}\` ADD INDEX \`${indexName}\` (${columnsSql})`);
+    console.log(`- Índice adicionado com segurança: ${tableName}.${indexName}`);
+  }
+}
+
 try {
   await connection.query(
     `CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
   );
   await connection.query(`USE \`${database}\``);
   await connection.query(sql);
+
+  // Migrações incrementais seguras em bancos existentes (sem apagar dados nem recriar tabelas)
+  await ensureColumn('users', 'token_version', 'token_version INT UNSIGNED NOT NULL DEFAULT 1 AFTER active');
+  await ensureIndex('users', 'idx_users_role_active', 'role, active');
+  await ensureIndex('students', 'idx_students_class_active', 'class_name, active');
+  await ensureIndex('occurrences', 'idx_occurrences_status_date', 'status, occurrence_date');
+  await ensureIndex('occurrences', 'idx_occurrences_priority', 'priority');
+  await ensureIndex('occurrences', 'idx_occurrences_category', 'category_id');
+  await ensureIndex('occurrences', 'idx_occurrences_location', 'location_id');
+  await ensureIndex('occurrences', 'idx_occurrences_created_at', 'created_at');
+  await ensureIndex('audit_logs', 'idx_audit_entity_action', 'entity, action, created_at');
+
+  // Em bancos legados que ainda tinham perfil ALUNO no ENUM, garantir que nenhum aluno tenha acesso ativo
+  const [roleColumn] = await connection.execute(
+    `SELECT COLUMN_TYPE
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'
+     LIMIT 1`,
+    [database]
+  );
+  if (roleColumn[0]?.COLUMN_TYPE?.includes("'ALUNO'")) {
+    await connection.query(`UPDATE users SET active = FALSE WHERE role = 'ALUNO'`);
+  }
+
   console.log(`Banco "${database}" e tabelas preparados com sucesso.`);
 } catch (error) {
   console.error(`Não foi possível preparar o banco: ${databaseErrorMessage(error)}`);

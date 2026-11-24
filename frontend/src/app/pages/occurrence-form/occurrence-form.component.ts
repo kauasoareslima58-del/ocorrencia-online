@@ -5,7 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { NamedItem, Occurrence, Student } from '../../core/models';
-import { classLabel } from '../../core/view-helpers';
+import { classLabel, nowLocalTime, todayLocalIso } from '../../core/view-helpers';
 
 @Component({
   selector: 'app-occurrence-form',
@@ -18,6 +18,7 @@ export class OccurrenceFormComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   readonly auth = inject(AuthService);
+
   students: Student[] = [];
   selectedStudents: Student[] = [];
   categories: NamedItem[] = [];
@@ -27,12 +28,14 @@ export class OccurrenceFormComponent implements OnInit {
   classFilter = '';
   selectedStudentIds: number[] = [];
   loading = true;
+  studentsLoading = false;
   saving = false;
   error = '';
   readonly classLabel = classLabel;
+
   formModel = {
-    occurrenceDate: new Date().toISOString().slice(0, 10),
-    occurrenceTime: new Date().toTimeString().slice(0, 5),
+    occurrenceDate: todayLocalIso(),
+    occurrenceTime: nowLocalTime(),
     categoryId: 0,
     locationId: 0,
     priority: 'MEDIA',
@@ -49,13 +52,25 @@ export class OccurrenceFormComponent implements OnInit {
         this.formModel.locationId = locations[0]?.id ?? 0;
         this.loading = false;
       },
-      error: () => { this.error = 'Não foi possível carregar categorias e locais.'; this.loading = false; }
+      error: () => {
+        this.error = 'Não foi possível carregar categorias e locais.';
+        this.loading = false;
+      }
     });
     this.loadStudents();
   }
 
   loadStudents(): void {
-    this.api.getStudents(this.studentSearch, this.classFilter).subscribe({ next: (items) => this.students = items });
+    this.studentsLoading = true;
+    this.api.getStudents(this.studentSearch, this.classFilter).subscribe({
+      next: (items) => {
+        this.students = items;
+        this.studentsLoading = false;
+      },
+      error: () => {
+        this.studentsLoading = false;
+      }
+    });
   }
 
   toggleStudent(student: Student, checked: boolean): void {
@@ -63,6 +78,9 @@ export class OccurrenceFormComponent implements OnInit {
       if (!this.selectedStudentIds.includes(student.id)) {
         this.selectedStudentIds = [...this.selectedStudentIds, student.id];
         this.selectedStudents = [...this.selectedStudents, student];
+        if (this.error === 'Selecione pelo menos um aluno envolvido.') {
+          this.error = '';
+        }
       }
     } else {
       this.removeStudent(student.id);
@@ -74,10 +92,13 @@ export class OccurrenceFormComponent implements OnInit {
     this.selectedStudents = this.selectedStudents.filter((student) => student.id !== id);
   }
 
-  isSelected(id: number): boolean { return this.selectedStudentIds.includes(id); }
+  isSelected(id: number): boolean {
+    return this.selectedStudentIds.includes(id);
+  }
 
   submit(): void {
-    if (this.saving || !this.selectedStudentIds.length) {
+    if (this.saving) return;
+    if (!this.selectedStudentIds.length) {
       this.error = 'Selecione pelo menos um aluno envolvido.';
       return;
     }
@@ -87,7 +108,9 @@ export class OccurrenceFormComponent implements OnInit {
       next: (occurrence: Occurrence) => void this.router.navigate(['/ocorrencias', occurrence.id]),
       error: (error: HttpErrorResponse) => {
         this.saving = false;
-        this.error = typeof error.error?.message === 'string' ? error.error.message : 'Não foi possível registrar a ocorrência.';
+        this.error = typeof error.error?.message === 'string'
+          ? error.error.message
+          : 'Não foi possível registrar a ocorrência.';
       }
     });
   }

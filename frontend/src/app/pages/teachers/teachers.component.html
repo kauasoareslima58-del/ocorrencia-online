@@ -15,17 +15,32 @@
   </section>
 }
 
-@if (error) { <div class="message error" role="alert">{{ error }}</div> }
-@if (success) { <div class="message success" role="status">{{ success }}</div> }
+@if (error) {
+  <div class="feedback-banner error" role="alert">
+    <span>{{ error }}</span>
+    <button type="button" class="banner-close" aria-label="Fechar aviso" (click)="error = ''">✕</button>
+  </div>
+}
+@if (success) {
+  <div class="feedback-banner success" role="status">
+    <span>{{ success }}</span>
+    <button type="button" class="banner-close" aria-label="Fechar aviso" (click)="success = ''">✕</button>
+  </div>
+}
 
 <section class="teachers-card">
   <div class="card-heading">
     <div><h2>Contas cadastradas</h2><p>{{ filteredTeachers.length }} professor(es)</p></div>
-    <div class="heading-search">
+    <div class="heading-filters">
+      <select [(ngModel)]="statusFilter" aria-label="Filtrar por status">
+        <option value="all">Todos os status</option>
+        <option value="active">Somente ativos</option>
+        <option value="inactive">Somente desativados</option>
+      </select>
       <input [(ngModel)]="search" placeholder="Pesquisar por nome ou e-mail...">
     </div>
   </div>
-  @if (loading) { <div class="empty-state">Carregando professores…</div> }
+  @if (loading) { <div class="loading-state"><span class="spinner" aria-hidden="true"></span> Carregando professores…</div> }
   @else if (filteredTeachers.length) {
     <div class="table-wrap">
       <table>
@@ -66,11 +81,11 @@
 
 <!-- Modal de Editar Dados do Professor -->
 @if (showEditModal) {
-  <div class="modal-backdrop">
-    <div class="modal-card">
+  <div class="modal-backdrop" (click)="closeEditModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Editar Dados do Professor</h3>
-        <button class="close-btn" (click)="closeEditModal()">✕</button>
+        <button type="button" class="close-btn" aria-label="Fechar" (click)="closeEditModal()">✕</button>
       </div>
 
       <form (ngSubmit)="submitEditTeacher()" #editTeacherNgForm="ngForm">
@@ -80,7 +95,7 @@
         <label for="editTeacherEmail">E-mail de Acesso</label>
         <input id="editTeacherEmail" name="editTeacherEmail" type="email" required maxlength="180" [(ngModel)]="editTeacherForm.email">
 
-        @if (editError) { <p class="modal-error">{{ editError }}</p> }
+        @if (editError) { <p class="modal-error" role="alert">{{ editError }}</p> }
 
         <div class="modal-actions">
           <button type="button" class="btn-cancel" (click)="closeEditModal()">Cancelar</button>
@@ -93,20 +108,23 @@
 
 <!-- Modal de Redefinir Senha do Professor -->
 @if (showResetModal && selectedTeacher) {
-  <div class="modal-backdrop">
-    <div class="modal-card">
+  <div class="modal-backdrop" (click)="closeResetModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Redefinir Senha de Professor</h3>
-        <button class="close-btn" (click)="closeResetModal()">✕</button>
+        <button type="button" class="close-btn" aria-label="Fechar" (click)="closeResetModal()">✕</button>
       </div>
 
-      <p class="reset-instruction">Defina uma nova senha para o professor <strong>{{ selectedTeacher.name }}</strong> ({{ selectedTeacher.email }}):</p>
+      <p class="reset-instruction">Defina uma nova senha para o professor <strong>{{ selectedTeacher.name }}</strong> ({{ selectedTeacher.email }}). As sessões anteriores serão desconectadas automaticamente.</p>
 
       <form (ngSubmit)="submitResetPassword()" #resetForm="ngForm">
         <label for="newTeacherPass">Nova Senha Provisória</label>
-        <input id="newTeacherPass" name="newTeacherPass" type="password" required minlength="8" [(ngModel)]="newPassword" placeholder="Mínimo 8 caracteres com símbolos">
+        <div class="password-field">
+          <input id="newTeacherPass" name="newTeacherPass" [type]="showResetPassword ? 'text' : 'password'" required minlength="8" maxlength="72" [(ngModel)]="newPassword" placeholder="Mínimo 8 caracteres (A-Z, a-z, 0-9, símbolo)">
+          <button type="button" (click)="showResetPassword = !showResetPassword">{{ showResetPassword ? 'Ocultar' : 'Mostrar' }}</button>
+        </div>
 
-        @if (resetError) { <p class="modal-error">{{ resetError }}</p> }
+        @if (resetError) { <p class="modal-error" role="alert">{{ resetError }}</p> }
 
         <div class="modal-actions">
           <button type="button" class="btn-cancel" (click)="closeResetModal()">Cancelar</button>

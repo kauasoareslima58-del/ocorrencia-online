@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { rateLimit } from 'express-rate-limit';
 import { env } from './config/env.js';
-import { authenticate } from './middleware/auth.js';
+import { allowRoles, authenticate } from './middleware/auth.js';
 import { errorHandler, notFound } from './middleware/error-handler.js';
 import { authRouter } from './routes/auth.routes.js';
 import { dashboardRouter } from './routes/dashboard.routes.js';
@@ -24,31 +24,69 @@ const hasFrontendBuild = fs.existsSync(frontendDist);
 
 export const app = express();
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
 app.use(helmet({
-  contentSecurityPolicy: false
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'same-origin' }
 }));
+
+const localOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || origin === env.frontendUrl || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || !env.isProduction) {
+    // Requisições sem cabeçalho Origin (ex: mesma origem, curl, scripts locais) são permitidas.
+    if (!origin) return callback(null, true);
+
+    if (env.allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(null, true); // Permite acessos via túnel / produção
+
+    if (!env.isProduction && localOriginPattern.test(origin)) {
+      return callback(null, true);
+    }
+
+    const corsError = new Error('Origem não autorizada pelo CORS.');
+    corsError.code = 'CORS_NOT_ALLOWED';
+    corsError.status = 403;
+    return callback(corsError);
   },
-  credentials: false
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Authorization', 'Content-Type'],
+  credentials: false,
+  maxAge: 600
 }));
 
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '512kb' }));
 
 // Servir frontend compilado se existir
 if (hasFrontendBuild) {
   app.use(express.static(frontendDist));
 }
 
-// Rotas da API
-app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 50, standardHeaders: 'draft-8', legacyHeaders: false }), authRouter);
-app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
-app.use('/api', authenticate);
+// Rate limiters
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'Muitas requisições de autenticação. Tente novamente em instantes.' }
+});
+
+const apiRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  limit: 300,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'Limite de requisições excedido. Aguarde um momento.' }
+});
+
+// Rotas públicas da API
+app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'ocorrencia-online-api' }));
+app.use('/api/auth', authRateLimiter, authRouter);
+
+// Todas as demais rotas da API exigem autenticação válida (somente ADMINISTRADOR ou PROFESSOR)
+app.use('/api', apiRateLimiter, authenticate, allowRoles('ADMINISTRADOR', 'PROFESSOR'));
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/metadata', metadataRouter);
 app.use('/api/occurrences', occurrencesRouter);

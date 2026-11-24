@@ -43,7 +43,9 @@ export class OccurrenceDetailComponent implements OnInit {
   get canAddUpdate(): boolean {
     if (!this.occurrence) return false;
     if (this.auth.hasRole('ADMINISTRADOR')) return true;
-    return this.auth.hasRole('PROFESSOR') && this.occurrence.createdBy === this.auth.currentUser?.id;
+    return this.auth.hasRole('PROFESSOR')
+      && this.occurrence.createdBy === this.auth.currentUser?.id
+      && this.occurrence.status !== 'ENCERRADA';
   }
 
   get canEditOccurrence(): boolean {
@@ -164,12 +166,17 @@ export class OccurrenceDetailComponent implements OnInit {
     this.error = '';
     this.success = '';
     this.api.addOccurrenceUpdate(this.occurrence.id, this.updateModel).subscribe({
-      next: () => {
-        this.success = 'Atualização registrada com sucesso.';
+      next: (res) => {
+        this.success = res.message || 'Atualização registrada com sucesso.';
         this.updateModel.observation = '';
         this.updateModel.actionTaken = '';
         this.saving = false;
-        this.load();
+        if (res.occurrence) {
+          this.occurrence = res.occurrence;
+          this.updateModel.newStatus = res.occurrence.status;
+        } else {
+          this.load();
+        }
       },
       error: (err: HttpErrorResponse) => {
         this.error = typeof err.error?.message === 'string' ? err.error.message : 'Não foi possível salvar a atualização.';

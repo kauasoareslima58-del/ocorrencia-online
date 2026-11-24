@@ -13,6 +13,7 @@
       <select id="auditAction" name="auditAction" [(ngModel)]="filters.action">
         <option value="">Todas</option>
         <option value="LOGIN">Login</option>
+        <option value="LOGIN_FAILED">Login negado</option>
         <option value="CREATE">Criação</option>
         <option value="UPDATE">Atualização</option>
       </select>
@@ -46,7 +47,8 @@
 
 <section class="audit-card">
   <div class="audit-notice"><span>i</span><p>Os registros de auditoria são somente para consulta e não podem ser alterados pelo sistema ({{ logs.length }} registro(s) listado(s)).</p></div>
-  @if (loading) { <div class="empty-state">Carregando registros…</div> }
+  @if (loading) { <div class="loading-state"><span class="spinner" aria-hidden="true"></span> Carregando registros…</div> }
+  @else if (error) { <div class="empty-state error">{{ error }}</div> }
   @else if (logs.length) {
     <div class="table-wrap"><table><thead><tr><th>Data e hora</th><th>Usuário</th><th>Ação</th><th>Entidade</th><th>Detalhes</th></tr></thead><tbody>
       @for (log of logs; track log.id) { <tr><td>{{ formatDateTime(log.createdAt) }}</td><td><strong>{{ log.userName }}</strong><small>{{ roleLabel(log.userRole) }}</small></td><td><span class="action-badge">{{ actionLabel(log.action, log.entity) }}</span></td><td>{{ log.entity }} @if (log.entityId) { <small>#{{ log.entityId }}</small> }</td><td class="details">{{ formatDetails(log.details) }}</td></tr> }
