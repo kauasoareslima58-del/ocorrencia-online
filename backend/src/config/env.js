@@ -20,7 +20,9 @@ const isProduction = nodeEnv === 'production';
 const dbPort = readPort('DB_PORT', process.env.DB_PORT ?? '3306');
 const apiPort = readPort('PORT', process.env.PORT ?? '3000');
 const dbName = String(process.env.DB_NAME).trim();
-const frontendUrl = normalizeOrigin(String(process.env.FRONTEND_URL ?? 'http://localhost:4200').trim(), 'FRONTEND_URL');
+const defaultVercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || '';
+const fallbackFrontendUrl = defaultVercelHost ? `https://${defaultVercelHost}` : 'http://localhost:4200';
+const frontendUrl = normalizeOrigin(String(process.env.FRONTEND_URL || fallbackFrontendUrl).trim(), 'FRONTEND_URL');
 const jwtSecret = String(process.env.JWT_SECRET).trim();
 
 if (!/^[A-Za-z0-9_]+$/.test(dbName)) {
@@ -46,7 +48,16 @@ const extraOrigins = String(process.env.ALLOWED_ORIGINS ?? '')
   .filter(Boolean)
   .map((origin) => normalizeOrigin(origin, 'ALLOWED_ORIGINS'));
 
-const allowedOrigins = [...new Set([frontendUrl, ...extraOrigins])];
+const vercelOrigins = [
+  process.env.VERCEL_URL,
+  process.env.VERCEL_BRANCH_URL,
+  process.env.VERCEL_PROJECT_PRODUCTION_URL
+]
+  .map((host) => String(host ?? '').trim())
+  .filter(Boolean)
+  .map((host) => normalizeOrigin(host.startsWith('http') ? host : `https://${host}`, 'VERCEL_URL'));
+
+const allowedOrigins = [...new Set([frontendUrl, ...extraOrigins, ...vercelOrigins])];
 
 const dbSslEnabled = ['true', '1', 'yes', 'required'].includes(
   String(process.env.DB_SSL ?? '').trim().toLowerCase()
