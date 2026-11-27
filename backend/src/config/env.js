@@ -59,13 +59,17 @@ const vercelOrigins = [
 
 const allowedOrigins = [...new Set([frontendUrl, ...extraOrigins, ...vercelOrigins])];
 
-const dbSslEnabled = ['true', '1', 'yes', 'required'].includes(
-  String(process.env.DB_SSL ?? '').trim().toLowerCase()
-);
+const dbHost = String(process.env.DB_HOST).trim();
+const isLocalDbHost = ['localhost', '127.0.0.1', '::1'].includes(dbHost.toLowerCase());
+const rawDbSsl = String(process.env.DB_SSL ?? '').trim().toLowerCase();
+const dbSslEnabled = rawDbSsl
+  ? ['true', '1', 'yes', 'required'].includes(rawDbSsl)
+  : !isLocalDbHost;
 const dbSslCaPath = String(process.env.DB_SSL_CA ?? '').trim();
-const dbSslRejectUnauthorized = !['false', '0', 'no'].includes(
-  String(process.env.DB_SSL_REJECT_UNAUTHORIZED ?? 'true').trim().toLowerCase()
-);
+const rawRejectUnauthorized = String(process.env.DB_SSL_REJECT_UNAUTHORIZED ?? '').trim().toLowerCase();
+const dbSslRejectUnauthorized = rawRejectUnauthorized
+  ? !['false', '0', 'no'].includes(rawRejectUnauthorized)
+  : Boolean(dbSslCaPath);
 
 const dbSsl = dbSslEnabled
   ? {
